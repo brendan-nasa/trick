@@ -45,13 +45,12 @@ jobs:
             clang-devel \
             gcc \
             gcc-c++ \
-            java-21-openjdk-devel \
             libxml2-devel \
             llvm-devel \
             llvm-static \
             ncurses-devel \
-            openmotif \
-            openmotif-devel \
+            motif \
+            motif-devel \
             perl \
             perl-Digest-MD5 \
             udunits2 \
@@ -67,7 +66,8 @@ jobs:
             bison \
             maven \
             zip \
-            gtest-devel
+            gtest-devel \
+            gmock-devel
 
       - name: Setup java
         uses: actions/setup-java@v5
