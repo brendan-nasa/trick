@@ -10,12 +10,12 @@ on:
 
 jobs:
   build-test:
-    name: Alma {{ matrix.almalinux-version }} - Java {{ matrix.java }}
     strategy:
       fail-fast: false
       matrix:
         almalinux-version: [8, 9, 10]
         java: [21]
+    name: Alma {{ matrix.almalinux-version }} - Java {{ matrix.java }}
 
     runs-on: ubuntu-latest
     container:
