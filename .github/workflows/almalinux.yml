@@ -10,6 +10,7 @@ on:
 
 jobs:
   build-test:
+    name: Alma {{ matrix.almalinux-version }} - Java {{ matrix.java }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,8 +50,7 @@ jobs:
             llvm-devel \
             llvm-static \
             ncurses-devel \
-            motif \
-            motif-devel \
+            openmotif-devel \
             perl \
             perl-Digest-MD5 \
             udunits2 \
@@ -65,7 +65,6 @@ jobs:
             flex \
             bison \
             maven \
-            zip \
             gtest-devel \
             gmock-devel
 
