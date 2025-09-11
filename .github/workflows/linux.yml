@@ -1,0 +1,203 @@
+name: Multi-Distro CI
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # weekly
+  workflow_dispatch:
+  push:
+    branches:
+      '**'
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }}:${{ matrix.version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # AlmaLinux
+          - os: almalinux
+            version: 8
+            image: almalinux:8
+          - os: almalinux
+            version: 9
+            image: almalinux:9
+          - os: almalinux
+            version: 10
+            image: almalinux:10
+
+          # Oracle Linux
+          - os: oraclelinux
+            version: 8
+            image: oraclelinux:8
+          - os: oraclelinux
+            version: 9
+            image: oraclelinux:9
+          - os: oraclelinux
+            version: 10
+            image: oraclelinux:10
+
+          # Ubuntu (LTS + latest)
+          - os: ubuntu
+            version: 20.04
+            image: ubuntu:20.04
+          - os: ubuntu
+            version: 22.04
+            image: ubuntu:22.04
+          - os: ubuntu
+            version: 24.04
+            image: ubuntu:24.04
+          - os: ubuntu
+            version: latest
+            image: ubuntu:latest
+
+          # Debian (supported releases)
+          - os: debian
+            version: 11
+            image: debian:11
+          - os: debian
+            version: 12
+            image: debian:12
+          - os: debian
+            version: 13
+            image: debian:13
+
+          # Fedora (stable + rawhide)
+          - os: fedora
+            version: latest
+            image: quay.io/fedora/fedora:latest
+          - os: fedora
+            version: rawhide
+            image: quay.io/fedora/fedora:rawhide
+
+    container:
+      image: ${{ matrix.image }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Enable extra repos (AlmaLinux only)
+        if: ${{ matrix.os == 'almalinux' }}
+        run: |
+          if [ "${{ matrix.version }}" == "8" ]; then
+            dnf config-manager --set-enabled powertools
+          else
+            dnf config-manager --set-enabled crb
+          fi
+          dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${{ matrix.version }}.noarch.rpm"
+
+      - name: Update package manager (RPM-based)
+        if: ${{ matrix.os == 'almalinux' || matrix.os == 'oraclelinux' || matrix.os == 'fedora' }}
+        run: dnf -y makecache
+
+      - name: Update package manager (Debian/Ubuntu)
+        if: ${{ matrix.os == 'debian' || matrix.os == 'ubuntu' }}
+        run: apt-get update -y
+
+      - name: Install dependencies (RPM-based)
+        if: ${{ matrix.os == 'almalinux' || matrix.os == 'oraclelinux' || matrix.os == 'fedora' }}
+        run: |
+          dnf install -y \
+            clang-devel \
+            gcc \
+            gcc-c++ \
+            libxml2-devel \
+            llvm-devel \
+            llvm-static \
+            ncurses-devel \
+            openmotif \
+            openmotif-devel \
+            perl \
+            perl-Digest-MD5 \
+            udunits2 \
+            udunits2-devel \
+            which \
+            zlib-devel \
+            python3-devel \
+            swig \
+            diffutils \
+            git \
+            cmake \
+            flex \
+            bison \
+            maven \
+            zip \
+            gtest-devel
+
+      - name: Install dependencies (Debian/Ubuntu)
+        if: ${{ matrix.os == 'debian' || matrix.os == 'ubuntu' }}
+        run: |
+          apt-get install -y \
+            build-essential \
+            clang \
+            cmake \
+            flex \
+            bison \
+            git \
+            llvm \
+            maven \
+            zip \
+            swig \
+            libx11-dev \
+            libxml2-dev \
+            libxt-dev \
+            libmotif-common \
+            libmotif-dev \
+            zlib1g-dev \
+            llvm-dev \
+            libclang-dev \
+            libudunits2-dev \
+            libgtest-dev \
+            python3-dev \
+            python3-pip \
+            python3-venv
+
+      - name: Build LLVM from source (Fedora Rawhide only)
+        if: ${{ matrix.os == 'fedora' && matrix.version == 'rawhide' }}
+        run: |
+          dnf install -y git cmake ninja-build gcc g++ python3-devel
+          git clone --depth 1 https://github.com/llvm/llvm-project.git
+          cd llvm-project
+          mkdir build && cd build
+          cmake -G Ninja ../llvm \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" \
+            -DCMAKE_INSTALL_PREFIX=/opt/llvm
+          ninja -j"$(nproc)"
+          ninja install
+          echo "/opt/llvm/lib" > /etc/ld.so.conf.d/llvm.conf
+          ldconfig
+
+      - name: Setup java
+        uses: actions/setup-java@5
+        with:
+          distribution: 'corretto'
+          java-version: 21
+
+      - name: Configure Trick (with LLVM HEAD)
+        if: ${{ matrix.os == 'fedora' && matrix.version == 'rawhide' }}
+        env:
+          PATH: "/opt/llvm/bin:${PATH}"
+          LD_LIBRARY_PATH: "/opt/llvm/lib:${LD_LIBRARY_PATH}"
+          CMAKE_PREFIX_PATH: "/opt/llvm"
+        run: ./configure
+
+      - name: Configure Trick (default)
+        if: ${{ !(matrix.os == 'fedora' && matrix.version == 'rawhide') }}
+        run: ./configure
+
+      - name: Build Trick
+        run: make -j"$(nproc)"
+
+      - name: Run tests
+        run: |
+          cd share/trick/trickops/
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          cd ../../../
+          make test
