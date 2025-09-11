@@ -25,13 +25,13 @@ jobs:
         run: |
           dnf install -y 'dnf-command(config-manager)'
           if [ "${{ matrix.almalinux-version }}" == "8" ]; then
-            dnf config-manager --set-enabled
+            dnf config-manager --set-enabled powertools
             dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
           elif [ "${{ matrix.almalinux-version }}" == "9" ]; then
-            dnf config-manager --set-enabled
+            dnf config-manager --set-enabled crb
             dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
           elif [ "${{ matrix.almalinux-version }}" == "10" ]; then
-            dnf config-manager --set-enabled
+            dnf config-manager --set-enabled crb
             dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
           fi
 
