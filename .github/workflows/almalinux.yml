@@ -23,6 +23,7 @@ jobs:
     steps:
       - name: Enable extra repos
         run: |
+          dnf config-manager --set enabled
           if [ "${{ matrix.almalinux-version }}" == "8" ]; then
             dnf config-manager --set-enabled powertools
             dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
