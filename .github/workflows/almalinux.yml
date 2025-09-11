@@ -24,13 +24,15 @@ jobs:
     steps:
       - name: Enable extra repos
         run: |
+          dnf install 'dnf-command(config-manager)'
+
           if [ "${{ matrix.almalinux-version }}" == "8" ]; then
             dnf config-manager --set-enabled powertools
           else
             # For AlmaLinux 9 and 10
             dnf config-manager --set-enabled crb
           fi
-          
+
           dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${{ matrix.almalinux-version }}.noarch.rpm"
       
       - name: Update package manager
