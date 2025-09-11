@@ -15,7 +15,7 @@ jobs:
       matrix:
         almalinux-version: [8, 9, 10]
         java: [21]
-    name: Alma {{ matrix.almalinux-version }} - Java {{ matrix.java }}
+    name: Alma ${{ matrix.almalinux-version }} - Java ${{ matrix.java }}
 
     runs-on: ubuntu-latest
     container:
@@ -24,18 +24,15 @@ jobs:
     steps:
       - name: Enable extra repos
         run: |
-          dnf install -y 'dnf-command(config-manager)'
           if [ "${{ matrix.almalinux-version }}" == "8" ]; then
             dnf config-manager --set-enabled powertools
-            dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-          elif [ "${{ matrix.almalinux-version }}" == "9" ]; then
+          else
+            # For AlmaLinux 9 and 10
             dnf config-manager --set-enabled crb
-            dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-          elif [ "${{ matrix.almalinux-version }}" == "10" ]; then
-            dnf config-manager --set-enabled crb
-            dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
           fi
-
+          
+          dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${{ matrix.almalinux-version }}.noarch.rpm"
+      
       - name: Update package manager
         run: |
           dnf -y upgrade
