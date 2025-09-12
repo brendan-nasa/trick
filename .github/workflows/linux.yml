@@ -139,6 +139,10 @@ jobs:
       - name: Install dependencies (Debian/Ubuntu)
         if: ${{ matrix.os == 'debian' || matrix.os == 'ubuntu' }}
         run: |
+          # tzdata on ubuntu 20.04 requests interaction
+          if [[ ${{ matrix.version}} == "20.04" ]]; then
+          export DEBIAN_FRONTEND=noninteractive
+          fi
           apt-get install -y \
             build-essential \
             clang \
