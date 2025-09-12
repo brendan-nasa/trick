@@ -82,12 +82,21 @@ jobs:
       - name: Enable extra repos (AlmaLinux only)
         if: ${{ matrix.os == 'almalinux' }}
         run: |
+          dnf install -y 'dnf-command(config-manager)'
           if [ "${{ matrix.version }}" == "8" ]; then
             dnf config-manager --set-enabled powertools
           else
             dnf config-manager --set-enabled crb
           fi
           dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${{ matrix.version }}.noarch.rpm"
+
+      - name: Enable extra repos (Oracle Linux only)
+        if: ${{ matrix.os == 'oraclelinux' }}
+        run: |
+          dnf install -y 'dnf-command(config-manager)'
+          dnf install -y oracle-epel-release-el${{ matrix.version }}
+          dnf config-manager --enable ol${{ matrix.version }}_codeready_builder
+          dnf config-manager --enable ol${{ matrix.version}}_distrobuilder
 
       - name: Update package manager (RPM-based)
         if: ${{ matrix.os == 'almalinux' || matrix.os == 'oraclelinux' || matrix.os == 'fedora' }}
@@ -124,8 +133,8 @@ jobs:
             flex \
             bison \
             maven \
-            zip \
-            gtest-devel
+            gtest-devel \
+            gmock-devel
 
       - name: Install dependencies (Debian/Ubuntu)
         if: ${{ matrix.os == 'debian' || matrix.os == 'ubuntu' }}
@@ -151,9 +160,11 @@ jobs:
             libclang-dev \
             libudunits2-dev \
             libgtest-dev \
+            libgmock-dev \
             python3-dev \
             python3-pip \
-            python3-venv
+            python3-venv \
+            curl
 
       - name: Build LLVM from source (Fedora Rawhide only)
         if: ${{ matrix.os == 'fedora' && matrix.version == 'rawhide' }}
