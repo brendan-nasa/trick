@@ -96,7 +96,7 @@ jobs:
           dnf install -y 'dnf-command(config-manager)'
           dnf install -y oracle-epel-release-el${{ matrix.version }}
           dnf config-manager --enable ol${{ matrix.version }}_codeready_builder
-          dnf config-manager --enable ol${{ matrix.version}}_distrobuilder
+          dnf config-manager --enable ol${{ matrix.version}}_distro_builder
 
       - name: Update package manager (RPM-based)
         if: ${{ matrix.os == 'almalinux' || matrix.os == 'oraclelinux' || matrix.os == 'fedora' }}
