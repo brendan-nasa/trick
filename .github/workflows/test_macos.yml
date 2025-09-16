@@ -41,15 +41,15 @@ jobs:
         echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
     - name: Report g++/clang version
       run: |
-        whence -Sa g++
+        which -a g++
         g++ --version
-        whence -Sa clang
+        which -a clang
         clang --version
     - name: Symlink g++ to homebrew clang
       run: |
         sudo ln -s /opt/homebrew/opt/llvm/bin/clang++ /usr/local/bin/g++
         g++ --version
-        whence -Sa g++
+        which -a g++
     - name: Build Trick
       run: |
         export MAKEFLAGS=-j4
