@@ -45,6 +45,11 @@ jobs:
         g++ --version
         whence -Sa clang
         clang --version
+    - name: Symlink g++ to homebrew clang
+      run: |
+        sudo ln -s /opt/homebrew/opt/llvm/bin/clang++ /usr/local/bin/g++
+        g++ --version
+        whence -Sa g++
     - name: Build Trick
       run: |
         export MAKEFLAGS=-j4
