@@ -39,10 +39,12 @@ jobs:
         brew install udunits openmotif maven
         brew install swig llvm
         echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
-    - name: Report g++ version
+    - name: Report g++/clang version
       run: |
-        whence -S g++
+        whence -Sa g++
         g++ --version
+        whence -Sa clang
+        clang --version
     - name: Build Trick
       run: |
         export MAKEFLAGS=-j4
