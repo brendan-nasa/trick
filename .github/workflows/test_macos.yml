@@ -4,6 +4,7 @@ on:
   push:
     branches:
         - master
+        - '**'
     paths-ignore:
     - 'docs/**'
     - '.github/workflows/**'
@@ -37,6 +38,7 @@ jobs:
         brew install --cask xquartz
         brew install udunits openmotif maven
         brew install swig llvm
+        echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
     - name: Build Trick
       run: |
         export MAKEFLAGS=-j4
