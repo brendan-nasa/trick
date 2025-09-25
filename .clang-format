@@ -1,13 +1,14 @@
 BasedOnStyle: WebKit
+---
+Language: Cpp
 AccessModifierOffset: -1
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Left
 AlignEscapedNewlines: LeftWithLastLine
-AlignOperands: BreakBeforeBinaryOperators
+AlignOperands: Align
 AlignTrailingComments:
   Kind: Always
   OverEmptyLines: 0
-BreakBeforeBraces: Attach
 Cpp11BracedListStyle: true
+ColumnLimit: 120
 IndentCaseLabels: true
-PointerAlignment: Middle
