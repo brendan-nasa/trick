@@ -1,6 +1,6 @@
 import React from 'react';
 import Client from './Client';
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from '@mui/material/styles';
 import withRoot from './withRoot';
 import styles from './AppStyles';
 

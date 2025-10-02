@@ -1,51 +1,51 @@
 import React, { useState } from "react";
-import AppBar from "@material-ui/core/AppBar";
-import MuiBox from "@material-ui/core/Box";
-import Toolbar from "@material-ui/core/Toolbar";
-import Table from "@material-ui/core/Table";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
-import Paper from "@material-ui/core/Paper";
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import ExpansionPanel from "@material-ui/core/ExpansionPanel";
-import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
-import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import AppBar from "@mui/material/AppBar";
+import MuiBox from "@mui/material/Box";
+import Toolbar from "@mui/material/Toolbar";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Flex, Box } from "reflexbox";
-import TreeView from "@material-ui/lab/TreeView";
-import ChevronRightIcon from "@material-ui/icons/ChevronRight";
-import TreeItem from "@material-ui/lab/TreeItem";
-import SearchIcon from "@material-ui/icons/Search";
-import InputBase from "@material-ui/core/InputBase";
+import TreeView from "@mui/lab/TreeView";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import TreeItem from "@mui/lab/TreeItem";
+import SearchIcon from "@mui/icons-material/Search";
+import InputBase from "@mui/material/InputBase";
 
-import Drawer from "@material-ui/core/Drawer";
+import Drawer from "@mui/material/Drawer";
 
-import List from "@material-ui/core/List";
+import List from "@mui/material/List";
 
-import Divider from "@material-ui/core/Divider";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemText from "@material-ui/core/ListItemText";
-import InboxIcon from "@material-ui/icons/MoveToInbox";
-import MailIcon from "@material-ui/icons/Mail";
+import Divider from "@mui/material/Divider";
+import ListItem from "@mui/material/ListItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import InboxIcon from "@mui/icons-material/MoveToInbox";
+import MailIcon from "@mui/icons-material/Mail";
 
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import Radio from "@material-ui/core/Radio";
-import RadioGroup from "@material-ui/core/RadioGroup";
-import FormHelperText from "@material-ui/core/FormHelperText";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormControl from "@material-ui/core/FormControl";
-import FormLabel from "@material-ui/core/FormLabel";
-//import OutlinedInput from '@material-ui/core/OutlinedInput';
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormHelperText from "@mui/material/FormHelperText";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
+//import OutlinedInput from '@mui/material/OutlinedInput';
 
-//import MenuItem from '@material-ui/core/MenuItem';
+//import MenuItem from '@mui/material/MenuItem';
 
-//import Select from '@material-ui/core/Select';
+//import Select from '@mui/material/Select';
 
 export default class Client extends React.Component {
   constructor(props) {
@@ -562,18 +562,18 @@ export default class Client extends React.Component {
                     </Box>
                   </Flex>
                 </Flex>
-                <ExpansionPanel>
-                  <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     Status Messages
-                  </ExpansionPanelSummary>
-                  <ExpansionPanelDetails>
+                  </AccordionSummary>
+                  <AccordionDetails>
                     <Typography>
                       <MuiBox bgcolor="black" padding={1}>
                         {"Coming Soon"}
                       </MuiBox>
                     </Typography>
-                  </ExpansionPanelDetails>
-                </ExpansionPanel>
+                  </AccordionDetails>
+                </Accordion>
               </Paper>
             </Box>
             <Box margin={2}>
