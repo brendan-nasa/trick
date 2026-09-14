@@ -1,21 +1,21 @@
+#include "trick/TrickConstant.hh"
+#include "trick/UdUnits.hh"
+#include "trick/VariableServerResources.hh"
+#include "trick/VariableServerSession.hh"
+#include "trick/command_line_protos.h"
+#include "trick/exec_proto.h"
+#include "trick/map_trick_units_to_udunits.hh"
+#include "trick/memorymanager_c_intf.h"
+#include "trick/message_proto.h"
+#include "trick/message_type.h"
+#include "trick/sie_c_intf.h"
+#include "trick/variable_server_message_types.h"
 
-#include <string.h>
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
+#include <string.h>
 #include <udunits2.h>
-#include "trick/VariableServerSession.hh"
-#include "trick/variable_server_message_types.h"
-#include "trick/memorymanager_c_intf.h"
-#include "trick/exec_proto.h"
-#include "trick/command_line_protos.h"
-#include "trick/message_proto.h"
-#include "trick/message_type.h"
-#include "trick/TrickConstant.hh"
-#include "trick/sie_c_intf.h"
-#include "trick/UdUnits.hh"
-#include "trick/map_trick_units_to_udunits.hh"
-
 
 int Trick::VariableServerSession::var_add(std::string in_name) {
     VariableReference * new_var;
@@ -104,9 +104,9 @@ int Trick::VariableServerSession::var_get_stl_size(std::string in_name)
     int size = 0;
     bool error = false;
 
-    REF2 *ref = ref_attributes(in_name.c_str());
+    Ref2Ptr ref(ref_attributes(in_name.c_str()));
 
-    if (ref == NULL)
+    if (ref == nullptr)
     {
         error = true;
     }
@@ -127,7 +127,6 @@ int Trick::VariableServerSession::var_get_stl_size(std::string in_name)
             // Call the get_stl_size accessor function
             size = attr->get_stl_size(ref->address);
         }
-        free(ref);
     }
 
     unsigned int msg_type = VS_GET_STL_SIZE;
@@ -177,9 +176,10 @@ int Trick::VariableServerSession::var_exists(std::string in_name) {
     bool error = false ;
 
     unsigned int msg_type ;
-    REF2* var_ref = ref_attributes(in_name.c_str());
+    Ref2Ptr var_ref(ref_attributes(in_name.c_str()));
 
-    if ( var_ref == (REF2*)NULL ) {
+    if (var_ref == nullptr)
+    {
         error = true;
     }
 

@@ -5,11 +5,12 @@ PURPOSE: (A variable server variable reference. Refactor of VariableReference
 #ifndef VARIABLE_REFERENCE_HH
 #define VARIABLE_REFERENCE_HH
 
-#include <time.h>
-#include <vector>
+#include "trick/VariableServerResources.hh"
+#include "trick/reference.h"
 
 #include <iostream>
-#include <trick/reference.h>
+#include <time.h>
+#include <vector>
 
 #define MAX_ARRAY_LENGTH 4096
 
@@ -24,8 +25,6 @@ namespace Trick {
 
         // Special constructor to deal with time
         VariableReference(std::string var_name, double* time);
-
-        ~VariableReference();
 
         std::string getName() const;
         TRICK_TYPE getType() const;
@@ -65,28 +64,28 @@ namespace Trick {
         void byteswap_var(char * out, char * in) const;
 
         // Error refs
-        static REF2* make_error_ref(std::string in_name);
-        static REF2* make_do_not_resolve_ref(std::string in_name);
+        static Ref2Ptr make_error_ref(std::string in_name);
+        static Ref2Ptr make_do_not_resolve_ref(std::string in_name);
 
         static int _bad_ref_int;
         static int _do_not_resolve_bad_ref_int;
 
-        REF2 * _var_info;  
+        Ref2Ptr _var_info;                    // ** reference info, released via ref_free + free
         void * _address;                      // -- address of data copied to buffer
         int    _size;                         // -- size of data copied to buffer
         bool   _deref;                        // -- indicates whether variable is pointer that needs to be dereferenced
-        cv_converter * _conversion_factor ;  // ** udunits conversion factor
+        CvConverterPtr _conversion_factor;    // ** udunits conversion factor
         TRICK_TYPE _trick_type ;             // -- Trick type of this variable
         bool _used_stl_indexing;             // -- indicates if reference involved STL container indexing
 
         bool _staged;
         bool _write_ready;
 
-        void *_stage_buffer;
-        void *_write_buffer;  
+        std::vector<char> _stage_buffer; // ** staging buffer, swapped with _write_buffer
+        std::vector<char> _write_buffer; // ** write buffer, swapped with _stage_buffer
 
         std::string _base_units;
-        std::string _requested_units; 
+        std::string _requested_units;
         std::string _name;
     };
 

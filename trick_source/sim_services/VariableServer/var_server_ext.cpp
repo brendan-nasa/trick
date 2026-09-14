@@ -1,13 +1,14 @@
+#include "trick/VariableServer.hh"
+
+#include "trick/VariableServerResources.hh"
+#include "trick/exec_proto.h"
+#include "trick/map_trick_units_to_udunits.hh"
+#include "trick/memorymanager_c_intf.h"
+#include "trick/message_proto.h"
+#include "trick/message_type.h"
 
 #include <iostream>
 #include <string.h>
-
-#include "trick/VariableServer.hh"
-#include "trick/exec_proto.h"
-#include "trick/message_proto.h"
-#include "trick/message_type.h"
-#include "trick/memorymanager_c_intf.h"
-#include "trick/map_trick_units_to_udunits.hh"
 
 extern Trick::VariableServer * the_vs ;
 
@@ -541,8 +542,9 @@ void var_set_value< void * > ( V_DATA & v_data , void * value ) {
 
 template<class T>
 int var_set_base( const char  * var , T value , const char * units ) {
-    REF2 *ref = ref_attributes(var) ;
-    if ( ref != NULL ) {
+    Trick::Ref2Ptr ref(ref_attributes(var));
+    if (ref != nullptr)
+    {
         if (ref->attr->io & TRICK_VAR_INPUT) {
             V_TREE v_tree ;
             V_DATA v_data ;
@@ -553,19 +555,14 @@ int var_set_base( const char  * var , T value , const char * units ) {
             } else {
                 ref->units = NULL ;
             }
-            ref_assignment(ref , &v_tree) ;
-
-            // Free allocated memory within a REF2 structure. Does not free the REF2 itself
-            ref_free(ref) ;
-
-            // Free the REF2 structure itself
-            free(ref) ;
-            ref = NULL;
+            ref_assignment(ref.get(), &v_tree);
         } else {
             message_publish(MSG_WARNING,"Cannot assign to %s because io_spec does not allow input\n", var) ;
             return 1;
         }
-    } else {
+    }
+    else
+    {
         message_publish(MSG_WARNING,"reference attributes not found for variable %s in call to var_set\n", var) ;
         return 2;
     }
