@@ -19,7 +19,8 @@ int Trick::VariableServerSession::copy_sim_data(std::vector<VariableReference *>
         return 0;
     }
 
-    if ( pthread_mutex_trylock(&_copy_mutex) == 0 ) {
+    std::unique_lock<std::mutex> lock(_copy_mutex, std::try_to_lock) ;
+    if ( lock.owns_lock() ) {
         // Get the simulation time we start this copy
         _time = (double)exec_get_time_tics() / exec_get_time_tic_value() ;
         
@@ -27,8 +28,6 @@ int Trick::VariableServerSession::copy_sim_data(std::vector<VariableReference *>
         for (auto curr_var : given_vars ) {
             curr_var->stageValue();
         }
-
-        pthread_mutex_unlock(&_copy_mutex) ;
     }
 
     return 0;

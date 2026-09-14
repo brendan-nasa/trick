@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <map>
+#include <mutex>
 #include <pthread.h>
 #include <queue>
 #include <set>
@@ -370,7 +371,7 @@ received.
     std::map<pthread_t, VariableServerSession*> var_server_sessions;      /**<  trick_io(**) */
 
     /** Mutex to ensure only one thread manipulates the map of var_server_threads\n */
-    pthread_mutex_t map_mutex; /**<  trick_io(**) */
+    std::mutex map_mutex; /**<  trick_io(**) */
 
     /** Map of additional listen threads created by create_tcp_socket.\n */
     std::map<pthread_t, VariableServerListenThread*> additional_listen_threads; /**<  trick_io(**) */

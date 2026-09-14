@@ -6,6 +6,8 @@
 #ifndef VARIABLESERVERLISTENTHREAD_HH
 #define VARIABLESERVERLISTENTHREAD_HH
 
+#include <condition_variable>
+#include <mutex>
 #include <string>
 #include <iostream>
 #include "trick/TCPClientListener.hh"
@@ -85,8 +87,8 @@ namespace Trick {
             MulticastGroup * _multicast;     /**<  trick_io(**) trick_units(--)  */
 
             unsigned int pendingConnections;         /**<  trick_io(**) trick_units(--)  */
-            pthread_mutex_t connectionMutex;         /**<  trick_io(**) trick_units(--)  */
-            pthread_cond_t  noPendingConnections_cv; /**<  trick_io(**) trick_units(--)  */
+            std::mutex connectionMutex;              /**<  trick_io(**) trick_units(--)  */
+            std::condition_variable noPendingConnections_cv; /**<  trick_io(**) trick_units(--)  */
 
     } ;
 

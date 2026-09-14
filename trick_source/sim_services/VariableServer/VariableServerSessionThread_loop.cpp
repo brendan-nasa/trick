@@ -48,10 +48,11 @@ void * Trick::VariableServerSessionThread::thread_body() {
         _vs->delete_vst(pthread_self());
 
         // Tell main thread that we failed to initialize
-        pthread_mutex_lock(&_connection_status_mutex);
-        _connection_status = CONNECTION_FAIL;
-        pthread_cond_signal(&_connection_status_cv);
-        pthread_mutex_unlock(&_connection_status_mutex);
+        {
+            std::lock_guard<std::mutex> lock(_connection_status_mutex);
+            _connection_status = CONNECTION_FAIL;
+        }
+        _connection_status_cv.notify_one();
 
         thread_shutdown();
     }
@@ -75,10 +76,11 @@ void * Trick::VariableServerSessionThread::thread_body() {
     _vs->add_session( pthread_self(), _session );
 
     // Tell main that we are ready
-    pthread_mutex_lock(&_connection_status_mutex);
-    _connection_status = CONNECTION_SUCCESS;
-    pthread_cond_signal(&_connection_status_cv);
-    pthread_mutex_unlock(&_connection_status_mutex);
+    {
+        std::lock_guard<std::mutex> lock(_connection_status_mutex);
+        _connection_status = CONNECTION_SUCCESS;
+    }
+    _connection_status_cv.notify_one();
 
     try {
         while (1) {

@@ -22,8 +22,6 @@ Trick::VariableServerSessionThread::VariableServerSessionThread(VariableServerSe
     _connection_status = CONNECTION_PENDING ;
 
 
-    pthread_mutex_init(&_connection_status_mutex, NULL);
-    pthread_cond_init(&_connection_status_cv, NULL);
 
     cancellable = false;
 }
@@ -40,11 +38,12 @@ std::ostream& Trick::operator<< (std::ostream& s, Trick::VariableServerSessionTh
     s << "    \"client_IP_address\":\"" << vst._connection->getClientHostname() << "\",\n";
     s << "    \"client_port\":\"" << vst._connection->getClientPort() << "\",\n";
 
-    pthread_mutex_lock(&vst._connection_status_mutex);
-    if (vst._connection_status == CONNECTION_SUCCESS) {
-        s << *(vst._session);
+    {
+        std::lock_guard<std::mutex> lock(vst._connection_status_mutex);
+        if (vst._connection_status == CONNECTION_SUCCESS) {
+            s << *(vst._session);
+        }
     }
-    pthread_mutex_unlock(&vst._connection_status_mutex);
 
     s << "  }" << std::endl;
     return s;
@@ -68,11 +67,10 @@ void Trick::VariableServerSessionThread::set_connection(Trick::ClientConnection 
 
 Trick::ConnectionStatus Trick::VariableServerSessionThread::wait_for_accept() {
 
-    pthread_mutex_lock(&_connection_status_mutex);
-    while ( _connection_status == CONNECTION_PENDING ) {
-        pthread_cond_wait(&_connection_status_cv, &_connection_status_mutex);
+    {
+        std::unique_lock<std::mutex> lock(_connection_status_mutex);
+        _connection_status_cv.wait(lock, [this] { return _connection_status != CONNECTION_PENDING; });
     }
-    pthread_mutex_unlock(&_connection_status_mutex);
 
     return _connection_status;
 }
@@ -85,13 +83,14 @@ void Trick::VariableServerSessionThread::preload_checkpoint() {
 
 
     // Make sure that the _session has been initialized
-    pthread_mutex_lock(&_connection_status_mutex);
+    std::lock_guard<std::mutex> lock(_connection_status_mutex);
     if (_connection_status == CONNECTION_SUCCESS) {
 
-        // Let the thread complete any data copying it has to do
-        // and then suspend data copying until the checkpoint is reloaded.
-        _session->pause_copy();
-        
+        // Let the thread complete any data copying it has to do and then suspend data
+        // copying until the checkpoint is reloaded. The lock releases at the end of this
+        // scope, including if disconnect_references() throws.
+        std::unique_lock<std::mutex> copy_lock = _session->acquire_copy_lock();
+
         // Save the pause state of this thread.
         _saved_pause_cmd = _session->get_pause();
 
@@ -101,11 +100,7 @@ void Trick::VariableServerSessionThread::preload_checkpoint() {
         // Temporarily "disconnect" the variable references from Trick Managed Memory
         // by tagging each as a "bad reference".
         _session->disconnect_references();
-
-        // Allow data copying to continue.
-        _session->unpause_copy();
     }
-    pthread_mutex_unlock(&_connection_status_mutex);
 }
 
 // Gets called from the main thread as a job
@@ -113,11 +108,12 @@ void Trick::VariableServerSessionThread::restart() {
     // Set the pause state of this thread back to its "pre-checkpoint reload" state.
     _connection->restart();
 
-    pthread_mutex_lock(&_connection_status_mutex);
-    if (_connection_status == CONNECTION_SUCCESS) {
-        _session->set_pause(_saved_pause_cmd) ;
+    {
+        std::lock_guard<std::mutex> lock(_connection_status_mutex);
+        if (_connection_status == CONNECTION_SUCCESS) {
+            _session->set_pause(_saved_pause_cmd) ;
+        }
     }
-    pthread_mutex_unlock(&_connection_status_mutex);
 
     // Restart the variable server processing.
     unpause_thread();

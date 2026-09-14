@@ -209,11 +209,11 @@ int Trick::VariableServerSession::write_data(std::vector<VariableReference *>& g
 
     int result = 0;
 
-    if ( pthread_mutex_trylock(&_copy_mutex) == 0 ) {
+    std::unique_lock<std::mutex> lock(_copy_mutex, std::try_to_lock) ;
+    if ( lock.owns_lock() ) {
         // Check that all of the variables are staged
         for (VariableReference * variable : given_vars ) {
             if (!variable->isStaged()) {
-                pthread_mutex_unlock(&_copy_mutex) ;
                 return 0;
             }
         }
@@ -223,7 +223,9 @@ int Trick::VariableServerSession::write_data(std::vector<VariableReference *>& g
             variable->prepareForWrite();
         }
 
-        pthread_mutex_unlock(&_copy_mutex) ;
+        // Release the copy lock before writing. Writing can block on the client socket
+        // and must not hold off the sim-side copy while it does.
+        lock.unlock() ;
 
         // Send out in correct format
         if (_binary_data) {

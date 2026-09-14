@@ -38,8 +38,6 @@ Trick::VariableServerListenThread::VariableServerListenThread(TCPClientListener 
     }
 
     pendingConnections = 0;
-    pthread_mutex_init( &connectionMutex, NULL);
-    pthread_cond_init( &noPendingConnections_cv, NULL);
 
     cancellable = false;
 }
@@ -173,7 +171,7 @@ void * Trick::VariableServerListenThread::thread_body() {
             if (the_vs->get_enabled() && the_vs->get_allow_connections())
             {
                 // Create a new thread to service this connection (it accepts the connection itself).
-                pthread_mutex_lock(&connectionMutex);
+                std::lock_guard<std::mutex> lock(connectionMutex);
                 pendingConnections ++;
 
                 VariableServerSessionThread * vst = new Trick::VariableServerSessionThread() ;
@@ -190,9 +188,8 @@ void * Trick::VariableServerListenThread::thread_body() {
                 }
                 pendingConnections --;
                 if ( pendingConnections == 0 ) {
-                    pthread_cond_signal( &noPendingConnections_cv );
+                    noPendingConnections_cv.notify_one();
                 }
-                pthread_mutex_unlock(&connectionMutex);
             }
             else
             {
@@ -232,15 +229,14 @@ void * Trick::VariableServerListenThread::thread_body() {
 }
 
 void Trick::VariableServerListenThread::shutdownConnections() {
-    pthread_mutex_lock(&connectionMutex);
+    std::unique_lock<std::mutex> lock(connectionMutex);
     the_vs->set_allow_connections(false);
     //  if ANY connections are pending, then wait here until we’re notified that NO connections are pending.
     if (pendingConnections > 0)
     {
         the_vs->set_allow_connections(true);
-        pthread_cond_wait(&noPendingConnections_cv, &connectionMutex);
+        noPendingConnections_cv.wait(lock);
     }
-    pthread_mutex_unlock( &connectionMutex );
 }
 
 #include <fcntl.h>

@@ -5,6 +5,7 @@ PURPOSE: (Represent the state of a variable server connection.)
 #ifndef VSSESSION_HH
 #define VSSESSION_HH
 
+#include <mutex>
 #include <vector>
 #include <string>
 
@@ -101,8 +102,11 @@ namespace Trick {
 
         virtual double get_update_rate() const;
 
-        void pause_copy();
-        void unpause_copy();
+        /**
+         @brief Acquire the copy lock. Hold the returned lock for as long as data copying
+          must stay suspended; it releases on scope exit, including on an exception.
+        */
+        std::unique_lock<std::mutex> acquire_copy_lock();
 
         virtual VS_WRITE_MODE get_write_mode () const;
         virtual VS_COPY_MODE get_copy_mode () const;
@@ -437,7 +441,7 @@ namespace Trick {
         static int instance_counter;
         static std::string log_subdir;
 
-        pthread_mutex_t _copy_mutex;     /**<  trick_io(**) */
+        std::mutex _copy_mutex;     /**<  trick_io(**) */
 
         ClientConnection * _connection;  /**<  trick_io(**) */
 

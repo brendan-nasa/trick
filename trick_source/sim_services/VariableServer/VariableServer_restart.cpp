@@ -34,11 +34,12 @@ int Trick::VariableServer::suspendPreCheckpointReload() {
     }
 
     // Suspend session threads
-    pthread_mutex_lock(&map_mutex) ;
-    for (const auto& vst_it : var_server_threads ) {    
-        vst_it.second->preload_checkpoint() ;
+    {
+        std::lock_guard<std::mutex> lock(map_mutex) ;
+        for (const auto& vst_it : var_server_threads ) {    
+            vst_it.second->preload_checkpoint() ;
+        }
     }
-    pthread_mutex_unlock(&map_mutex) ;
 
     return 0;
 }
@@ -48,11 +49,12 @@ int Trick::VariableServer::resumePostCheckpointReload() {
     std::map<pthread_t, VariableServerSessionThread*>::iterator pos ;
 
     // Resume all session threads
-    pthread_mutex_lock(&map_mutex) ;
-    for (const auto& vst_it : var_server_threads ) {
-        vst_it.second->restart() ;
+    {
+        std::lock_guard<std::mutex> lock(map_mutex) ;
+        for (const auto& vst_it : var_server_threads ) {
+            vst_it.second->restart() ;
+        }
     }
-    pthread_mutex_unlock(&map_mutex) ;
 
     // Restart listening on all listening threads
     listen_thread.restart_listening() ;

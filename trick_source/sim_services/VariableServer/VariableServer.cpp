@@ -18,7 +18,6 @@ Trick::VariableServer::VariableServer()
     , bypass_ip_check(false)
 {
     the_vs = this ;
-    pthread_mutex_init(&map_mutex, NULL);
 }
 
 Trick::VariableServer::~VariableServer() {
@@ -131,50 +130,44 @@ Trick::VariableServerListenThread & Trick::VariableServer::get_listen_thread() {
 }
 
 void Trick::VariableServer::add_vst(pthread_t in_thread_id, VariableServerSessionThread * in_vst) {
-    pthread_mutex_lock(&map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex) ;
     var_server_threads[in_thread_id] = in_vst ;
-    pthread_mutex_unlock(&map_mutex) ;
 }
 
 void Trick::VariableServer::add_session(pthread_t in_thread_id, VariableServerSession * in_session) {
-    pthread_mutex_lock(&map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex) ;
     var_server_sessions[in_thread_id] = in_session ;
-    pthread_mutex_unlock(&map_mutex) ;
 }
 
 Trick::VariableServerSessionThread * Trick::VariableServer::get_vst(pthread_t thread_id) {
     std::map < pthread_t , Trick::VariableServerSessionThread * >::iterator it ;
     Trick::VariableServerSessionThread * ret = NULL ;
-    pthread_mutex_lock(&map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex) ;
     it = var_server_threads.find(thread_id) ;
     if ( it != var_server_threads.end() ) {
         ret = (*it).second ;
     }
-    pthread_mutex_unlock(&map_mutex) ;
     return ret ;
 }
 
 Trick::VariableServerSession * Trick::VariableServer::get_session(pthread_t thread_id) {
     Trick::VariableServerSession * ret = NULL ;
-    pthread_mutex_lock(&map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex) ;
     auto it = var_server_sessions.find(thread_id) ;
     if ( it != var_server_sessions.end() ) {
         ret = (*it).second ;
     }
-    pthread_mutex_unlock(&map_mutex) ;
     return ret ;
 }
 
 void Trick::VariableServer::delete_vst(pthread_t thread_id) {
-    pthread_mutex_lock(&map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex) ;
     var_server_threads.erase(thread_id) ;
-    pthread_mutex_unlock(&map_mutex) ;
 }
 
 void Trick::VariableServer::delete_session(pthread_t thread_id) {
-    pthread_mutex_lock(&map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex) ;
     var_server_sessions.erase(thread_id) ;
-    pthread_mutex_unlock(&map_mutex) ;
 }
 
 void Trick::VariableServer::set_copy_data_job( Trick::JobData * in_job ) {

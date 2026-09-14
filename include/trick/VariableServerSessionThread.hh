@@ -6,6 +6,8 @@
 #ifndef VariableServerSessionThread_HH
 #define VariableServerSessionThread_HH
 
+#include <condition_variable>
+#include <mutex>
 #include <string>
 #include <iostream>
 #include <pthread.h>
@@ -92,8 +94,8 @@ namespace Trick {
             int _debug ;                      /**<  trick_io(**) */
 
             ConnectionStatus _connection_status ;       /**<  trick_io(**) */
-            pthread_mutex_t _connection_status_mutex;     /**<  trick_io(**) */
-            pthread_cond_t _connection_status_cv;         /**<  trick_io(**) */
+            std::mutex _connection_status_mutex;          /**<  trick_io(**) */
+            std::condition_variable _connection_status_cv; /**<  trick_io(**) */
 
             bool _saved_pause_cmd;
     } ;

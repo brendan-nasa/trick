@@ -43,7 +43,6 @@ Trick::VariableServerSession::VariableServerSession() {
 
     _instance_num = instance_counter++;
 
-    pthread_mutex_init(&_copy_mutex, NULL);
 }
 
 Trick::VariableServerSession::~VariableServerSession() {
@@ -93,12 +92,8 @@ bool Trick::VariableServerSession::get_exit_cmd() {
     return _exit_cmd ;
 }
 
-void Trick::VariableServerSession::pause_copy() {
-    pthread_mutex_lock(&_copy_mutex);
-}
-
-void Trick::VariableServerSession::unpause_copy() {
-    pthread_mutex_unlock(&_copy_mutex);
+std::unique_lock<std::mutex> Trick::VariableServerSession::acquire_copy_lock() {
+    return std::unique_lock<std::mutex>(_copy_mutex);
 }
 
 void Trick::VariableServerSession::disconnect_references() {

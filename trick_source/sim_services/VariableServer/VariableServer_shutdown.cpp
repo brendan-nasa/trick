@@ -39,13 +39,14 @@ int Trick::VariableServer::shutdown() {
     // ordering meaningful: by the time this job returns, well-behaved sessions are gone
     // and the GIL is free.
     std::vector<VariableServerSessionThread*> sessions;
-    pthread_mutex_lock(&map_mutex) ;
-    for (auto& thread : var_server_threads)
     {
-        thread.second->request_shutdown();
-        sessions.push_back(thread.second);
+        std::lock_guard<std::mutex> lock(map_mutex) ;
+        for (auto& thread : var_server_threads)
+        {
+            thread.second->request_shutdown();
+            sessions.push_back(thread.second);
+        }
     }
-    pthread_mutex_unlock(&map_mutex) ;
 
     // Wait for the threads to drop out of the map, which they do from exit_var_thread() on
     // their way out.
@@ -57,9 +58,11 @@ int Trick::VariableServer::shutdown() {
     unsigned int waited = 0;
     while (waited < SESSION_SHUTDOWN_TIMEOUT_USEC)
     {
-        pthread_mutex_lock(&map_mutex);
-        bool all_stopped = var_server_threads.empty();
-        pthread_mutex_unlock(&map_mutex);
+        bool all_stopped;
+        {
+            std::lock_guard<std::mutex> lock(map_mutex) ;
+            all_stopped = var_server_threads.empty();
+        }
 
         if (all_stopped)
         {
@@ -77,9 +80,11 @@ int Trick::VariableServer::shutdown() {
     // holding it across a join here would deadlock.
     for (auto* thread : sessions)
     {
-        pthread_mutex_lock(&map_mutex);
-        bool still_running = (var_server_threads.count(thread->get_pthread_id()) > 0);
-        pthread_mutex_unlock(&map_mutex);
+        bool still_running;
+        {
+            std::lock_guard<std::mutex> lock(map_mutex) ;
+            still_running = (var_server_threads.count(thread->get_pthread_id()) > 0);
+        }
 
         if (still_running)
         {
