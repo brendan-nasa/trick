@@ -19,7 +19,8 @@ PROGRAMMERS: (((Alex Lin) (NASA) (8/06) (--)))
 
 
 
-int Trick::VariableServerSession::write_binary_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type) {
+int Trick::VariableServerSession::write_binary_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, VS_MESSAGE_TYPE message_type) {
+    // VarList is a non-owning view: given_vars keeps ownership throughout.
     typedef std::vector<VariableReference *> VarList;
     typedef std::pair<int,VarList> MessageData;
 
@@ -34,7 +35,7 @@ int Trick::VariableServerSession::write_binary_data(const std::vector<VariableRe
     int total_size = header_size;
     VarList curr_message_vars;
     for (int i = 0; i < given_vars.size(); i++) {
-        VariableReference * var = given_vars[i];
+        VariableReference * var = given_vars[i].get();
 
         int total_var_size = 0;
         if (!_binary_data_nonames) {
@@ -127,7 +128,7 @@ int Trick::VariableServerSession::write_binary_data(const std::vector<VariableRe
     return 0;
 }
 
-int Trick::VariableServerSession::write_ascii_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type ) {
+int Trick::VariableServerSession::write_ascii_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, VS_MESSAGE_TYPE message_type ) {
     // Load message type first
     std::stringstream message_stream;
     message_stream << (int)message_type;
@@ -201,7 +202,7 @@ int Trick::VariableServerSession::write_data() {
     return write_data(_session_variables, VS_VAR_LIST);
 }
 
-int Trick::VariableServerSession::write_data(std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type) { 
+int Trick::VariableServerSession::write_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, VS_MESSAGE_TYPE message_type) { 
     // do not send anything when there are no variables!
     if ( given_vars.size() == 0) {
         return(0);
@@ -212,14 +213,14 @@ int Trick::VariableServerSession::write_data(std::vector<VariableReference *>& g
     std::unique_lock<std::mutex> lock(_copy_mutex, std::try_to_lock) ;
     if ( lock.owns_lock() ) {
         // Check that all of the variables are staged
-        for (VariableReference * variable : given_vars ) {
+        for (const auto& variable : given_vars ) {
             if (!variable->isStaged()) {
                 return 0;
             }
         }
 
         // Swap buffer_in and buffer_out for each vars[ii].
-        for (VariableReference * variable : given_vars ) {
+        for (const auto& variable : given_vars ) {
             variable->prepareForWrite();
         }
 

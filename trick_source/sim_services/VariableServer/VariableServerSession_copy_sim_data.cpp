@@ -13,7 +13,7 @@ int Trick::VariableServerSession::copy_sim_data() {
     return copy_sim_data(_session_variables, true);
 }
 
-int Trick::VariableServerSession::copy_sim_data(std::vector<VariableReference *>& given_vars, bool cyclical) {
+int Trick::VariableServerSession::copy_sim_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, bool cyclical) {
 
     if (given_vars.size() == 0) {
         return 0;
@@ -25,7 +25,7 @@ int Trick::VariableServerSession::copy_sim_data(std::vector<VariableReference *>
         _time = (double)exec_get_time_tics() / exec_get_time_tic_value() ;
         
 
-        for (auto curr_var : given_vars ) {
+        for (const auto& curr_var : given_vars ) {
             curr_var->stageValue();
         }
     }

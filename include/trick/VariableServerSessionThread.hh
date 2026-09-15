@@ -7,6 +7,7 @@
 #define VariableServerSessionThread_HH
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <iostream>
@@ -45,7 +46,8 @@ namespace Trick {
              @brief Constructor.
             */
             VariableServerSessionThread() ;
-            VariableServerSessionThread(VariableServerSession * session) ;
+            /** Takes ownership of the session. */
+            VariableServerSessionThread(std::unique_ptr<VariableServerSession> session) ;
             
             virtual ~VariableServerSessionThread() ;
             /**
@@ -57,9 +59,9 @@ namespace Trick {
             void set_client_tag(std::string tag);
 
             /**
-             @brief Set the connection pointer for this thread
+             @brief Give this thread the client connection. The thread owns it from here.
             */
-            void set_connection(ClientConnection * in_connection);
+            void set_connection(std::unique_ptr<ClientConnection> in_connection);
 
             /**
              @brief Block until thread has accepted connection
@@ -85,10 +87,10 @@ namespace Trick {
             static VariableServer * _vs ;
 
             /** Manages the variable list  */
-            VariableServerSession * _session;       /**<  trick_io(**) */
+            std::unique_ptr<VariableServerSession> _session;   /**<  trick_io(**) */
 
             /** Connection to the client */
-            ClientConnection * _connection;        /**<  trick_io(**) */
+            std::unique_ptr<ClientConnection> _connection;     /**<  trick_io(**) */
 
             /** Value (1,2,or 3) that causes the variable server to output increasing amounts of debug information.\n */
             int _debug ;                      /**<  trick_io(**) */

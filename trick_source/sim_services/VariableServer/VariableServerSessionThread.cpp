@@ -14,10 +14,11 @@ Trick::VariableServer * Trick::VariableServerSessionThread::_vs = NULL ;
 
 static int instance_num = 0;
 
-Trick::VariableServerSessionThread::VariableServerSessionThread() : VariableServerSessionThread (new VariableServerSession()) {}
+Trick::VariableServerSessionThread::VariableServerSessionThread()
+ : VariableServerSessionThread (std::unique_ptr<VariableServerSession>(new VariableServerSession())) {}
 
-Trick::VariableServerSessionThread::VariableServerSessionThread(VariableServerSession * session) :
- Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(session), _connection(NULL) {
+Trick::VariableServerSessionThread::VariableServerSessionThread(std::unique_ptr<VariableServerSession> session) :
+ Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(std::move(session)) {
 
     _connection_status = CONNECTION_PENDING ;
 
@@ -61,8 +62,8 @@ void Trick::VariableServerSessionThread::set_client_tag(std::string tag) {
     _connection->setClientTag(tag);
 }
 
-void Trick::VariableServerSessionThread::set_connection(Trick::ClientConnection * in_connection) {
-    _connection = in_connection;
+void Trick::VariableServerSessionThread::set_connection(std::unique_ptr<Trick::ClientConnection> in_connection) {
+    _connection = std::move(in_connection);
 }
 
 Trick::ConnectionStatus Trick::VariableServerSessionThread::wait_for_accept() {
@@ -120,11 +121,13 @@ void Trick::VariableServerSessionThread::restart() {
 }
 
 void Trick::VariableServerSessionThread::cleanup() {
-    _connection->disconnect();
-
-    if (_session != NULL) {
-        delete _session;
-        _session = NULL;
+    // cleanup() runs from exit_var_thread() and again from the destructor, so it has to
+    // tolerate being called twice and being called before a connection was ever set.
+    if (_connection != nullptr) {
+        _connection->disconnect();
+        _connection.reset();
     }
+
+    _session.reset();
 }
 

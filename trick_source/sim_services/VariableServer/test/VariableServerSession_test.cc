@@ -2,6 +2,7 @@
 PURPOSE:                     ( Tests for the VariableServerSession class )
 *******************************************************************************/
 
+#include <memory>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
@@ -139,12 +140,12 @@ TEST_F(VariableServerSession_test, large_message_ascii) {
     (void) memmgr.declare_extern_var(&big_arr, "int big_arr[4000]");
 
     // Create references for all of them
-    std::vector <Trick::VariableReference *> vars;
+    std::vector <std::unique_ptr<Trick::VariableReference>> vars;
     for (int i = 0; i < big_arr_size; i++) {
         std::string var_name = "big_arr[" + std::to_string(i) + "]";
-        Trick::VariableReference * var = new Trick::VariableReference(var_name);
+        std::unique_ptr<Trick::VariableReference> var(new Trick::VariableReference(var_name));
         var->stageValue();
-        vars.push_back(var);
+        vars.push_back(std::move(var));
     } 
 
     // Make a matcher for the Mock
@@ -218,12 +219,12 @@ TEST_F(VariableServerSession_test, large_message_binary) {
     (void) memmgr.declare_extern_var(&big_arr, "int big_arr[4000]");
 
     // Create references for all of them
-    std::vector <Trick::VariableReference *> vars;
+    std::vector <std::unique_ptr<Trick::VariableReference>> vars;
     for (int i = 0; i < big_arr_size; i++) {
         std::string var_name = "big_arr[" + std::to_string(i) + "]";
-        Trick::VariableReference * var = new Trick::VariableReference(var_name);
+        std::unique_ptr<Trick::VariableReference> var(new Trick::VariableReference(var_name));
         var->stageValue();
-        vars.push_back(var);
+        vars.push_back(std::move(var));
     } 
 
     // Create a matcher that parses and collects the arguments into a ParsedBinaryMessage

@@ -5,6 +5,7 @@ PURPOSE: (Represent the state of a variable server connection.)
 #ifndef VSSESSION_HH
 #define VSSESSION_HH
 
+#include <memory>
 #include <mutex>
 #include <vector>
 #include <string>
@@ -81,13 +82,13 @@ namespace Trick {
          @brief Copy given variable values from Trick memory to each variable's output buffer.
             cyclical indicated whether it is a normal cyclical copy or a send_once copy
         */
-        virtual int copy_sim_data(std::vector<VariableReference *>& given_vars, bool cyclical);
+        virtual int copy_sim_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, bool cyclical);
         virtual int copy_sim_data();
 
         /**
          @brief Write data from the given var only to the appropriate format (var_ascii or var_binary) from variable output buffers to socket.
         */
-        virtual int write_data(std::vector<VariableReference *>& var, VS_MESSAGE_TYPE message_type) ;
+        virtual int write_data(const std::vector<std::unique_ptr<VariableReference>>& var, VS_MESSAGE_TYPE message_type) ;
         virtual int write_data();
 
         int write_stdio(int stream, std::string text);
@@ -449,12 +450,12 @@ namespace Trick {
         virtual int transmit_file(std::string sie_file);
 
         // Helper methods to write out formatted data
-        virtual int write_binary_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type);
-        virtual int write_ascii_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type );
+        virtual int write_binary_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, VS_MESSAGE_TYPE message_type);
+        virtual int write_ascii_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, VS_MESSAGE_TYPE message_type );
 
         virtual VariableReference * find_session_variable(std::string name) const;
 
-        std::vector<VariableReference *> _session_variables; /**<  trick_io(**) */
+        std::vector<std::unique_ptr<VariableReference>> _session_variables; /**<  trick_io(**) */
 
         // Getters and setters for internal variables
         virtual long long get_cycle_tics() const; 

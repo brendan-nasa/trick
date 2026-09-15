@@ -18,14 +18,11 @@
 #include <udunits2.h>
 
 int Trick::VariableServerSession::var_add(std::string in_name) {
-    VariableReference * new_var;
     if (in_name == "time") {
-        new_var = new VariableReference(in_name, &_time);
+        _session_variables.push_back(std::unique_ptr<VariableReference>(new VariableReference(in_name, &_time))) ;
     } else {
-        new_var = new VariableReference(in_name);
+        _session_variables.push_back(std::unique_ptr<VariableReference>(new VariableReference(in_name))) ;
     }
-
-    _session_variables.push_back(new_var) ;
 
     return(0) ;
 }
@@ -55,15 +52,15 @@ int Trick::VariableServerSession::var_send_once(std::string in_name, int num_var
         return -1;
     }
 
-    std::vector<VariableReference *> given_vars;
+    // given_vars owns these references, so they are released on return. The previous
+    // raw-pointer vector leaked every one of them on every var_send_once() call.
+    std::vector<std::unique_ptr<VariableReference>> given_vars;
     for (auto& varName : var_names) {
-        VariableReference * new_var;
         if (varName == "time") {
-            new_var = new VariableReference(varName, &_time);
+            given_vars.push_back(std::unique_ptr<VariableReference>(new VariableReference(varName, &_time)));
         } else {
-            new_var = new VariableReference(varName);
+            given_vars.push_back(std::unique_ptr<VariableReference>(new VariableReference(varName)));
         }
-        given_vars.push_back(new_var);
     }
     copy_sim_data(given_vars, false);
     write_data(given_vars, VS_SEND_ONCE);
@@ -77,7 +74,6 @@ int Trick::VariableServerSession::var_remove(std::string in_name) {
     for (unsigned int ii = 0 ; ii < _session_variables.size() ; ii++ ) {
         std::string var_name = _session_variables[ii]->getName();
         if ( ! var_name.compare(in_name) ) {
-            delete _session_variables[ii];
             _session_variables.erase(_session_variables.begin() + ii) ;
             break ;
         }
@@ -213,10 +209,7 @@ int Trick::VariableServerSession::var_exists(std::string in_name) {
 
 int Trick::VariableServerSession::var_clear() {
 
-    while( !_session_variables.empty() ) {
-        delete _session_variables.back();
-        _session_variables.pop_back();
-    }
+    _session_variables.clear();
 
     return(0) ;
 }

@@ -72,8 +72,8 @@ void * Trick::VariableServerSessionThread::thread_body() {
 
     // Give the initialized connection to the session
     // Don't touch the connection anymore until we shut them both down
-    _session->set_connection(_connection);
-    _vs->add_session( pthread_self(), _session );
+    _session->set_connection(_connection.get());
+    _vs->add_session( pthread_self(), _session.get() );
 
     // Tell main that we are ready
     {
@@ -157,7 +157,7 @@ void * Trick::VariableServerSessionThread::thread_body() {
     }
 
     if (_debug >= 3) {
-        message_publish(MSG_DEBUG, "%p tag=<%s> var_server receive loop exiting\n", _connection, _connection->getClientTag().c_str());
+        message_publish(MSG_DEBUG, "%p tag=<%s> var_server receive loop exiting\n", _connection.get(), _connection->getClientTag().c_str());
     }
 
     thread_shutdown(exit_var_thread, this);

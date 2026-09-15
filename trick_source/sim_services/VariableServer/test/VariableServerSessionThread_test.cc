@@ -61,7 +61,7 @@ class VariableServerSessionThread_test : public ::testing::Test {
 	protected:
         Trick::VariableServer * varserver;
 
-        MockClientConnection connection;
+        MockClientConnection * connection;
         NiceMock<MockVariableServerSession> * session;
 
         MockMessagePublisher message_publisher;
@@ -78,7 +78,8 @@ class VariableServerSessionThread_test : public ::testing::Test {
 
             // Set up mocks
             session = new  NiceMock<MockVariableServerSession>;
-            setup_default_connection_mocks(&connection);
+            connection = new MockClientConnection;
+            setup_default_connection_mocks(connection);
             setup_default_session_mocks(session);
         }
 
@@ -120,13 +121,13 @@ TEST_F(VariableServerSessionThread_test, connection_failure) {
     // ARRANGE
 
     // Starting the connection fails
-    EXPECT_CALL(connection, start())
+    EXPECT_CALL(*connection, start())
         .Times(1)
         .WillOnce(Return(1));
     
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
     vst->create_thread();
@@ -141,14 +142,15 @@ TEST_F(VariableServerSessionThread_test, connection_failure) {
     EXPECT_EQ(varserver->get_vst(id), (Trick::VariableServerSessionThread *) NULL);
     EXPECT_EQ(varserver->get_session(id), (Trick::VariableServerSession *) NULL);
 
-    delete session;
+    // The thread owns the session and the connection, so deleting it releases both.
+    delete vst;
 }
 
 
 TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_handle_message_fails) {
 
     // ARRANGE
-    setup_normal_connection_expectations(&connection);
+    setup_normal_connection_expectations(connection);
     
     // Handle a message, but it fails
     EXPECT_CALL(*session, handle_message())
@@ -157,8 +159,8 @@ TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_handle_message_fails) 
     
         
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
     vst->create_thread();
@@ -179,7 +181,7 @@ TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_handle_message_fails) 
 TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_write_fails) {
 
     // ARRANGE
-    setup_normal_connection_expectations(&connection);
+    setup_normal_connection_expectations(connection);
     
     // Write out data
     EXPECT_CALL(*session, copy_and_write_async())
@@ -187,8 +189,8 @@ TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_write_fails) {
 
         
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
     vst->create_thread();
@@ -207,12 +209,12 @@ TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_write_fails) {
 
 TEST_F(VariableServerSessionThread_test, exit_commanded) {
     // ARRANGE
-    setup_normal_connection_expectations(&connection);
+    setup_normal_connection_expectations(connection);
     set_session_exit_after_some_loops(session);
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
     vst->create_thread();
@@ -233,11 +235,11 @@ TEST_F(VariableServerSessionThread_test, exit_commanded) {
 
 TEST_F(VariableServerSessionThread_test, thread_cancelled) {
     // ARRANGE
-    setup_normal_connection_expectations(&connection);
+    setup_normal_connection_expectations(connection);
     
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
     vst->create_thread();
     pthread_t id = vst->get_pthread_id();
     Trick::ConnectionStatus status = vst->wait_for_accept();
@@ -262,7 +264,7 @@ TEST_F(VariableServerSessionThread_test, thread_cancelled) {
 
 TEST_F(VariableServerSessionThread_test, turn_session_log_on) {
     // ARRANGE
-    setup_normal_connection_expectations(&connection);
+    setup_normal_connection_expectations(connection);
     set_session_exit_after_some_loops(session);
 
     varserver->set_var_server_log_on();
@@ -272,8 +274,8 @@ TEST_F(VariableServerSessionThread_test, turn_session_log_on) {
         .Times(1);
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
     vst->create_thread();
@@ -292,14 +294,14 @@ TEST_F(VariableServerSessionThread_test, turn_session_log_on) {
 
 TEST_F(VariableServerSessionThread_test, throw_trick_executive_exception) {
     // ARRANGE
-    setup_normal_connection_expectations(&connection);
+    setup_normal_connection_expectations(connection);
 
     EXPECT_CALL(*session, get_exit_cmd())
         .WillRepeatedly(Return(false));
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     EXPECT_CALL(*session, handle_message())
         .WillOnce(Throw(Trick::ExecutiveException(-1, __FILE__, __LINE__, "Trick::ExecutiveException Error message for testing")));
@@ -323,14 +325,14 @@ TEST_F(VariableServerSessionThread_test, throw_trick_executive_exception) {
 
 TEST_F(VariableServerSessionThread_test, throw_exception) {
     // ARRANGE
-    setup_normal_connection_expectations(&connection);
+    setup_normal_connection_expectations(connection);
 
     EXPECT_CALL(*session, get_exit_cmd())
         .WillRepeatedly(Return(false));
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(session) ;
-    vst->set_connection(&connection);
+    Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     EXPECT_CALL(*session, handle_message())
         .WillOnce(Throw(std::logic_error("Error message for testing")));

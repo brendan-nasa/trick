@@ -15,18 +15,18 @@
 
 extern Trick::VariableServer* the_vs;
 
-Trick::VariableServerListenThread::VariableServerListenThread() : VariableServerListenThread (NULL) {}
+Trick::VariableServerListenThread::VariableServerListenThread() : VariableServerListenThread (nullptr) {}
 
-Trick::VariableServerListenThread::VariableServerListenThread(TCPClientListener * listener) :
+Trick::VariableServerListenThread::VariableServerListenThread(std::unique_ptr<TCPClientListener> listener) :
  Trick::SysThread("VarServListen"),
  _requested_source_address(""),
  _requested_port(0),
  _user_requested_address(false),
  _broadcast(true),
- _listener(listener),
+ _listener(std::move(listener)),
  _multicast(new MulticastGroup())
 {
-    if (_listener != NULL) {
+    if (_listener != nullptr) {
         // If we were passed a listener
         // We assume it is already initialized
         _requested_source_address = _listener->getHostname();
@@ -34,7 +34,7 @@ Trick::VariableServerListenThread::VariableServerListenThread(TCPClientListener 
         _user_requested_address = true;
     } else {
         // Otherwise, make one
-        _listener = new TCPClientListener;
+        _listener.reset(new TCPClientListener);
     }
 
     pendingConnections = 0;
@@ -43,13 +43,11 @@ Trick::VariableServerListenThread::VariableServerListenThread(TCPClientListener 
 }
 
 Trick::VariableServerListenThread::~VariableServerListenThread() {
-    delete _listener;
-    delete _multicast;
+    // _listener and _multicast release themselves.
 }
 
-void Trick::VariableServerListenThread::set_multicast_group (MulticastGroup * group) {
-    delete _multicast;
-    _multicast = group;
+void Trick::VariableServerListenThread::set_multicast_group (std::unique_ptr<MulticastGroup> group) {
+    _multicast = std::move(group);
 }
 
 const char * Trick::VariableServerListenThread::get_hostname() {
@@ -175,7 +173,7 @@ void * Trick::VariableServerListenThread::thread_body() {
                 pendingConnections ++;
 
                 VariableServerSessionThread * vst = new Trick::VariableServerSessionThread() ;
-                vst->set_connection(_listener->setUpNewConnection());
+                vst->set_connection(std::unique_ptr<Trick::ClientConnection>(_listener->setUpNewConnection()));
                 vst->copy_cpus(get_cpus()) ;
                 vst->create_thread() ;
                 ConnectionStatus status = vst->wait_for_accept() ;
@@ -198,12 +196,11 @@ void * Trick::VariableServerListenThread::thread_body() {
                 // (an unaccepted connection would keep waking this loop and starve broadcasting)
                 // and gives the client a prompt disconnect instead of leaving it to hang. No
                 // commands are ever read or executed on the rejected connection.
-                Trick::TCPConnection* rejected = _listener->setUpNewConnection();
-                if (rejected != NULL)
+                std::unique_ptr<Trick::TCPConnection> rejected(_listener->setUpNewConnection());
+                if (rejected != nullptr)
                 {
                     rejected->start();
                     rejected->disconnect();
-                    delete rejected;
                 }
             }
         } else if ( _broadcast ) {

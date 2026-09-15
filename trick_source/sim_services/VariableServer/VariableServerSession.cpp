@@ -46,10 +46,8 @@ Trick::VariableServerSession::VariableServerSession() {
 }
 
 Trick::VariableServerSession::~VariableServerSession() {
-    for (unsigned int ii = 0 ; ii < _session_variables.size() ; ii++ ) {
-        delete _session_variables[ii];
-    }
- }
+    // _session_variables owns its references and releases them here.
+}
 
 
 void Trick::VariableServerSession::set_connection(ClientConnection * conn) {
@@ -97,7 +95,7 @@ std::unique_lock<std::mutex> Trick::VariableServerSession::acquire_copy_lock() {
 }
 
 void Trick::VariableServerSession::disconnect_references() {
-    for (VariableReference * variable : _session_variables) {
+    for (auto& variable : _session_variables) {
         variable->tagAsInvalid();
     }
 }
@@ -161,10 +159,10 @@ int Trick::VariableServerSession::handle_message() {
 }
 
 Trick::VariableReference * Trick::VariableServerSession::find_session_variable(std::string name) const {
-    for (VariableReference * ref : _session_variables) {
+    for (const auto& ref : _session_variables) {
         // Look for matching name
         if (name.compare(ref->getName()) == 0) {
-            return ref;
+            return ref.get();
         }
     }
 

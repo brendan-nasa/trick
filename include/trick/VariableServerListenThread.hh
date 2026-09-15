@@ -7,6 +7,7 @@
 #define VARIABLESERVERLISTENTHREAD_HH
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <iostream>
@@ -26,7 +27,8 @@ namespace Trick {
 
         public:
             VariableServerListenThread() ;
-            VariableServerListenThread(TCPClientListener * listener);
+            /** Takes ownership of the listener. */
+            VariableServerListenThread(std::unique_ptr<TCPClientListener> listener);
 
             virtual ~VariableServerListenThread() ;
 
@@ -56,7 +58,8 @@ namespace Trick {
             void pause_listening() ;
             void restart_listening() ;
 
-            void set_multicast_group (MulticastGroup * group);
+            /** Takes ownership of the group, replacing any existing one. */
+            void set_multicast_group (std::unique_ptr<MulticastGroup> group);
 
             virtual void dump( std::ostream & oss = std::cout ) ;
 
@@ -81,10 +84,10 @@ namespace Trick {
             bool _broadcast ;       /**<  trick_units(--) */
 
             /** The listen device */
-            TCPClientListener * _listener;        /**<  trick_io(**) trick_units(--)  */
+            std::unique_ptr<TCPClientListener> _listener;   /**<  trick_io(**) trick_units(--)  */
 
             /* Multicast broadcaster */
-            MulticastGroup * _multicast;     /**<  trick_io(**) trick_units(--)  */
+            std::unique_ptr<MulticastGroup> _multicast;     /**<  trick_io(**) trick_units(--)  */
 
             unsigned int pendingConnections;         /**<  trick_io(**) trick_units(--)  */
             std::mutex connectionMutex;              /**<  trick_io(**) trick_units(--)  */

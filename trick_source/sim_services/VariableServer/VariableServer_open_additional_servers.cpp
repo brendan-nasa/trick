@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <memory>
 #include "trick/VariableServer.hh"
 #include "trick/message_proto.h"
 #include "trick/message_type.h"
@@ -11,19 +12,18 @@
 int Trick::VariableServer::create_tcp_socket(const char * address, unsigned short in_port ) {
     // Open a VariableServerListenThread to manage this server
 
-    TCPClientListener * listener = new TCPClientListener();
+    std::unique_ptr<TCPClientListener> listener(new TCPClientListener());
     int status = listener->initialize(address, in_port);
 
     if (status != 0) {
         message_publish(MSG_ERROR, "ERROR: Could not establish additional listen port at address %s and port %d for Variable Server.\n", address, in_port);
-        delete listener;
         return 0;
     }
 
     std::string set_address = listener->getHostname();
     int set_port = listener->getPort();
 
-    Trick::VariableServerListenThread * new_listen_thread = new Trick::VariableServerListenThread(listener) ;
+    Trick::VariableServerListenThread * new_listen_thread = new Trick::VariableServerListenThread(std::move(listener)) ;
 
     new_listen_thread->copy_cpus(listen_thread.get_cpus()) ;
     new_listen_thread->create_thread() ;
@@ -38,11 +38,10 @@ int Trick::VariableServer::create_udp_socket(const char * address, unsigned shor
     // UDP sockets are created without a listen thread, and represent only 1 session
     // Create a VariableServerSessionThread to manage this session
 
-    UDPConnection * udp_conn = new UDPConnection();
+    std::unique_ptr<UDPConnection> udp_conn(new UDPConnection());
     int status = udp_conn->initialize(address, in_port);
     if ( status != 0 ) {
         message_publish(MSG_ERROR, "ERROR: Could not establish UDP port at address %s and port %d for Variable Server.\n", address, in_port);
-        delete udp_conn;
         return 0;
     }
 
@@ -51,7 +50,7 @@ int Trick::VariableServer::create_udp_socket(const char * address, unsigned shor
 
     Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread() ;
 
-    vst->set_connection(udp_conn);
+    vst->set_connection(std::move(udp_conn));
     vst->copy_cpus(listen_thread.get_cpus()) ;
     vst->create_thread() ;
 
@@ -70,13 +69,12 @@ int Trick::VariableServer::create_multicast_socket(const char * mcast_address, c
         return -1;
     }
 
-    MulticastGroup * multicast = new MulticastGroup();
+    std::unique_ptr<MulticastGroup> multicast(new MulticastGroup());
     message_publish(MSG_INFO, "Created UDP variable server %s: %d\n", address, in_port);
 
     int status = multicast->initialize_with_receiving(address, mcast_address, in_port);
     if ( status != 0 ) {
         message_publish(MSG_ERROR, "ERROR: Could not establish Multicast port at address %s and port %d for Variable Server.\n", address, in_port);
-        delete multicast;
         return 0;
     }
 
@@ -85,7 +83,7 @@ int Trick::VariableServer::create_multicast_socket(const char * mcast_address, c
 
     Trick::VariableServerSessionThread * vst = new Trick::VariableServerSessionThread() ;
 
-    vst->set_connection(multicast);
+    vst->set_connection(std::move(multicast));
     vst->copy_cpus(listen_thread.get_cpus()) ;
     vst->create_thread() ;
 
