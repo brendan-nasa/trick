@@ -18,6 +18,21 @@
 #include <string.h>
 #include <udunits2.h>
 
+// The unit conversion in effect, published as an immutable whole. See VariableReference.hh.
+struct Trick::VariableReferenceUnits
+{
+    CvConverterPtr converter;
+    std::string    requested_units;
+};
+
+// Publish a new conversion. Readers already holding the previous one keep it alive.
+static std::shared_ptr<const Trick::VariableReferenceUnits> make_units(cv_converter* converter,
+                                                                       const std::string& label)
+{
+    return std::shared_ptr<const Trick::VariableReferenceUnits>(
+        new Trick::VariableReferenceUnits{Trick::CvConverterPtr(converter), label});
+}
+
 // Static variables to be addresses that are known to be the error ref address
 int Trick::VariableReference::_bad_ref_int = 0 ;
 int Trick::VariableReference::_do_not_resolve_bad_ref_int = 0 ;
@@ -106,9 +121,8 @@ Trick::VariableReference::VariableReference(std::string var_name, double* time) 
     _stage_buffer.assign(_size, 0);
     _write_buffer.assign(_size, 0);
 
-    _conversion_factor.reset(cv_get_trivial());
+    _units = make_units(cv_get_trivial(), "s");
     _base_units = _var_info->attr->units;
-    _requested_units = "s";
     _name = _var_info->reference;
 }
 
@@ -200,9 +214,8 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
     _stage_buffer.assign(_size, 0);
     _write_buffer.assign(_size, 0);
 
-    _conversion_factor.reset(cv_get_trivial());
+    _units = make_units(cv_get_trivial(), "");
     _base_units = _var_info->attr->units;
-    _requested_units = "";
     _name = _var_info->reference;
 
     // Done!
@@ -292,12 +305,17 @@ int Trick::VariableReference::setRequestedUnits(std::string units_name) {
                 << "] to [" << new_units << "]";
             publish(MSG_ERROR, oss.str());
             return -1 ;
-        } else {
-            _conversion_factor.reset(new_conversion_factor);
         }
 
-        // Set the requested units. This will cause the unit string to be printed in write_value_ascii
-        _requested_units = new_units;
+        // Publish the converter and its label together, as one immutable replacement.
+        //
+        // This deliberately does not reset an owning pointer in place. writeValueAscii() can
+        // be running on the simulation thread -- VS_COPY_SCHEDULED with VS_WRITE_WHEN_COPIED
+        // calls write_data() from a sim job, and write_data() drops _copy_mutex before
+        // formatting -- so freeing the old converter underneath such a reader is a
+        // use-after-free. Updating the label separately would also let a packet convert with
+        // one factor and advertise another. Readers take a reference to the whole snapshot.
+        std::atomic_store(&_units, make_units(new_conversion_factor, new_units));
     }
     return 0;
 }
@@ -436,6 +454,11 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
         return -1;
     }
 
+    // Take one reference to the conversion for the whole of this format. It stays valid
+    // even if the session thread replaces the units underneath us, and the factor and the
+    // label printed below are guaranteed to come from the same replacement.
+    const std::shared_ptr<const VariableReferenceUnits> units = std::atomic_load(&_units);
+
     // local_type is set to the type of the attribute, but if it's a STL type, we need to use the element type.
     TRICK_TYPE local_type = _trick_type;
 
@@ -454,7 +477,7 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
         case TRICK_CHARACTER:
             if (_var_info->attr->num_index == _var_info->num_index) {
                 // Single char
-                out << (int)cv_convert_double(_conversion_factor.get(), *(char*)buf_ptr);
+                out << (int)cv_convert_double(units->converter.get(), *(char*)buf_ptr);
             } else {
                 // All but last dim specified, leaves a char array
                 write_escaped_string(out, (const char *) buf_ptr);
@@ -464,7 +487,7 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
         case TRICK_UNSIGNED_CHARACTER:
             if (_var_info->attr->num_index == _var_info->num_index) {
                 // Single char
-                out << (unsigned int)cv_convert_double(_conversion_factor.get(), *(unsigned char*)buf_ptr);
+                out << (unsigned int)cv_convert_double(units->converter.get(), *(unsigned char*)buf_ptr);
             } else {
                 // All but last dim specified, leaves a char array
                 write_escaped_string(out, (const char *) buf_ptr);
@@ -510,20 +533,20 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             }
             break;
         case TRICK_SHORT:
-            out << (short)cv_convert_double(_conversion_factor.get(), *(short*)buf_ptr);
+            out << (short)cv_convert_double(units->converter.get(), *(short*)buf_ptr);
             break;
 
         case TRICK_UNSIGNED_SHORT:
-            out << (unsigned short)cv_convert_double(_conversion_factor.get(), *(unsigned short*)buf_ptr);
+            out << (unsigned short)cv_convert_double(units->converter.get(), *(unsigned short*)buf_ptr);
             break;
 
         case TRICK_INTEGER:
         case TRICK_ENUMERATED:
-            out << (int)cv_convert_double(_conversion_factor.get(), *(int*)buf_ptr);
+            out << (int)cv_convert_double(units->converter.get(), *(int*)buf_ptr);
             break;
 
         case TRICK_BOOLEAN:
-            out << (int)cv_convert_double(_conversion_factor.get(), *(bool*)buf_ptr);
+            out << (int)cv_convert_double(units->converter.get(), *(bool*)buf_ptr);
             break;
 
         case TRICK_BITFIELD:
@@ -535,14 +558,14 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             break;
 
         case TRICK_UNSIGNED_INTEGER:
-            out << (unsigned int)cv_convert_double(_conversion_factor.get(), *(unsigned int*)buf_ptr);
+            out << (unsigned int)cv_convert_double(units->converter.get(), *(unsigned int*)buf_ptr);
             break;
 
         case TRICK_LONG: {
             long l = *(long *)buf_ptr;
-            if (_conversion_factor.get() != cv_get_trivial())
+            if (units->converter.get() != cv_get_trivial())
             {
-                l = (long)cv_convert_double(_conversion_factor.get(), l);
+                l = (long)cv_convert_double(units->converter.get(), l);
             }
             out << l;
             break;
@@ -550,27 +573,27 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
 
         case TRICK_UNSIGNED_LONG: {
             unsigned long ul = *(unsigned long *)buf_ptr;
-            if (_conversion_factor.get() != cv_get_trivial())
+            if (units->converter.get() != cv_get_trivial())
             {
-                ul = (unsigned long)cv_convert_double(_conversion_factor.get(), ul);
+                ul = (unsigned long)cv_convert_double(units->converter.get(), ul);
             }
             out << ul;
             break;
         }
 
         case TRICK_FLOAT:
-            out << std::setprecision(8) << cv_convert_float(_conversion_factor.get(), *(float*)buf_ptr);
+            out << std::setprecision(8) << cv_convert_float(units->converter.get(), *(float*)buf_ptr);
             break;
 
         case TRICK_DOUBLE:
-            out << std::setprecision(16) << cv_convert_double(_conversion_factor.get(), *(double*)buf_ptr);
+            out << std::setprecision(16) << cv_convert_double(units->converter.get(), *(double*)buf_ptr);
             break;
 
         case TRICK_LONG_LONG: {
             long long ll = *(long long *)buf_ptr;
-            if (_conversion_factor.get() != cv_get_trivial())
+            if (units->converter.get() != cv_get_trivial())
             {
-                ll = (long long)cv_convert_double(_conversion_factor.get(), ll);
+                ll = (long long)cv_convert_double(units->converter.get(), ll);
             }
             out << ll;
             break;
@@ -578,9 +601,9 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
 
         case TRICK_UNSIGNED_LONG_LONG: {
             unsigned long long ull = *(unsigned long long *)buf_ptr;
-            if (_conversion_factor.get() != cv_get_trivial())
+            if (units->converter.get() != cv_get_trivial())
             {
-                ull = (unsigned long long)cv_convert_double(_conversion_factor.get(), ull);
+                ull = (unsigned long long)cv_convert_double(units->converter.get(), ull);
             }
             out << ull;
             break;
@@ -603,11 +626,11 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
         }
     } //end while
 
-    if (_requested_units != "") {
+    if (units->requested_units != "") {
         if ( _var_info->attr->mods & TRICK_MODS_UNITSDASHDASH ) {
             out << " {--}";
         } else {
-            out << " {" << _requested_units << "}";
+            out << " {" << units->requested_units << "}";
         }
     }
 

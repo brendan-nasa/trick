@@ -9,6 +9,7 @@ PURPOSE: (A variable server variable reference. Refactor of VariableReference
 #include "trick/reference.h"
 
 #include <iostream>
+#include <memory>
 #include <time.h>
 #include <vector>
 
@@ -16,6 +17,18 @@ PURPOSE: (A variable server variable reference. Refactor of VariableReference
 
 union cv_converter ;
 namespace Trick {
+
+    /**
+     * The unit conversion in effect for a VariableReference: the converter together with
+     * the label describing it. Defined in VariableReference.cpp -- it is only ever held
+     * behind a shared_ptr, which does not require a complete type here.
+     *
+     * Replacement publishes a whole new instance rather than mutating this one. A reader
+     * that has taken a reference therefore keeps its converter alive for as long as it is
+     * formatting, and can never pair one replacement's factor with another's label.
+     */
+    struct VariableReferenceUnits;
+
     class VariableReference {
 
     public:
@@ -74,7 +87,10 @@ namespace Trick {
         void * _address;                      // -- address of data copied to buffer
         int    _size;                         // -- size of data copied to buffer
         bool   _deref;                        // -- indicates whether variable is pointer that needs to be dereferenced
-        CvConverterPtr _conversion_factor;    // ** udunits conversion factor
+        // Read via std::atomic_load, replaced via std::atomic_store: setRequestedUnits()
+        // runs on the client session thread while writeValueAscii() can run concurrently on
+        // the simulation thread under VS_COPY_SCHEDULED + VS_WRITE_WHEN_COPIED.
+        std::shared_ptr<const VariableReferenceUnits> _units;  // ** conversion factor + label
         TRICK_TYPE _trick_type ;             // -- Trick type of this variable
         bool _used_stl_indexing;             // -- indicates if reference involved STL container indexing
 
@@ -85,7 +101,6 @@ namespace Trick {
         std::vector<char> _write_buffer; // ** write buffer, swapped with _stage_buffer
 
         std::string _base_units;
-        std::string _requested_units;
         std::string _name;
     };
 

@@ -25,6 +25,7 @@ class TestObject {
     TestObject() {}
 
 	int length; /*  m xy-position */
+    double lengths[4]; /*  m array of lengths, for concurrent-format tests */
     double a;   /*  s time */
     long b;     /*  nautical_mile miles */
     long long c;     /*  in inches */

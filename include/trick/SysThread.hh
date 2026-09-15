@@ -38,9 +38,22 @@ namespace Trick {
 
             static int ensureAllShutdown();
 
+            /**
+             @brief Publishes that this thread is leaving for good and wakes any pause waiter.
+              Called from the thread itself on every cooperative exit path.
+            */
+            virtual void thread_shutdown();
+            virtual void thread_shutdown(void (*exit_handler) (void *), void * exit_arg);
+
         protected:
-            // Called from the main thread
-            void force_thread_to_pause();
+            /**
+             @brief Called from the main thread. Blocks until the thread acknowledges the
+              pause or exits.
+             @return true if the thread is paused and safe to act on, false if it has exited
+              and will never acknowledge. A thread that has exited cannot pause, so waiting
+              for an acknowledgement it can no longer send would hang forever.
+            */
+            bool force_thread_to_pause();
             // Called from the main thread
             void unpause_thread();
 
@@ -59,6 +72,9 @@ namespace Trick {
             // For the main thread to wait for the sys_thread to pause
             pthread_cond_t _thread_has_paused_cv;       /**<  trick_io(**) */
             bool _thread_has_paused;                    /**<  trick_io(**) */
+
+            // Terminal state. Once set the thread will never acknowledge a pause again.
+            bool _thread_has_exited;                    /**<  trick_io(**) */
 
 
             // Had to use Construct On First Use here to avoid the static initialziation fiasco

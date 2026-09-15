@@ -5,6 +5,9 @@ PURPOSE:                     ( Tests for the VariableServerSessionThread class )
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <stdexcept>
+#include <chrono>
+#include <future>
+#include <thread>
 
 #include "trick/VariableServer.hh"
 #include "trick/ExecutiveException.hh"
@@ -352,4 +355,90 @@ TEST_F(VariableServerSessionThread_test, throw_exception) {
     // There should be nothing in the VariableServer's thread list
     EXPECT_EQ(varserver->get_vst(id), (Trick::VariableServerSessionThread *) NULL);
     EXPECT_EQ(varserver->get_session(id), (Trick::VariableServerSession *) NULL);
+}
+
+
+// Runs preload_checkpoint() on its own thread and reports whether it returned in time.
+// A bounded wait is essential here: the bug this guards against is an unbounded one, so
+// asserting on it directly would hang the suite instead of failing it.
+static bool preload_checkpoint_completes(Trick::VariableServerSessionThread * vst,
+                                         std::chrono::seconds budget)
+{
+    auto done = std::make_shared<std::promise<void>>();
+    auto fut  = done->get_future();
+    std::thread worker([vst, done] {
+        vst->preload_checkpoint();
+        done->set_value();
+    });
+
+    const bool completed = fut.wait_for(budget) == std::future_status::ready;
+    if (completed) {
+        worker.join();
+    } else {
+        // Leak the thread deliberately: it is wedged forever, and joining would wedge us.
+        worker.detach();
+    }
+    return completed;
+}
+
+
+// Regression: suspending for a checkpoint must not wait on a session that has already
+// exited. force_thread_to_pause() waits for an acknowledgement produced by test_pause(),
+// and a session that disconnected, was told to exit, or failed a write will never call
+// test_pause() again, so the wait had no terminal condition.
+TEST_F(VariableServerSessionThread_test, preload_checkpoint_returns_when_session_has_exited) {
+    // ARRANGE
+    setup_normal_connection_expectations(connection);
+
+    // The session exits on its first pass through the loop, after test_pause() has already
+    // cleared the paused flag.
+    EXPECT_CALL(*session, get_exit_cmd())
+        .WillOnce(Return(true));
+
+    Trick::VariableServerSessionThread * vst =
+        new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
+
+    vst->create_thread();
+    ASSERT_EQ(vst->wait_for_accept(), Trick::ConnectionStatus::CONNECTION_SUCCESS);
+
+    // The session is definitively gone before we ask it to pause.
+    vst->join_thread();
+
+    // ACT / ASSERT
+    EXPECT_TRUE(preload_checkpoint_completes(vst, std::chrono::seconds(10)))
+        << "preload_checkpoint() waited for a pause acknowledgement from an exited session";
+
+    delete vst;
+}
+
+
+// The ordinary path must keep working: a live session still pauses and resumes.
+TEST_F(VariableServerSessionThread_test, preload_checkpoint_pauses_and_restarts_a_live_session) {
+    // ARRANGE
+    setup_normal_connection_expectations(connection);
+    EXPECT_CALL(*connection, restart())
+        .WillOnce(Return(0));
+
+    set_session_exit_after_some_loops(session);
+
+    // The live session is suspended and resumed, so it saves and restores its pause state.
+    EXPECT_CALL(*session, get_pause())
+        .WillRepeatedly(Return(false));
+
+    Trick::VariableServerSessionThread * vst =
+        new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
+
+    vst->create_thread();
+    ASSERT_EQ(vst->wait_for_accept(), Trick::ConnectionStatus::CONNECTION_SUCCESS);
+
+    // ACT / ASSERT
+    EXPECT_TRUE(preload_checkpoint_completes(vst, std::chrono::seconds(10)))
+        << "preload_checkpoint() failed to pause a live session";
+
+    vst->restart();
+
+    vst->join_thread();
+    delete vst;
 }

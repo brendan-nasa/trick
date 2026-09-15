@@ -94,6 +94,24 @@ std::unique_lock<std::mutex> Trick::VariableServerSession::acquire_copy_lock() {
     return std::unique_lock<std::mutex>(_copy_mutex);
 }
 
+// The only three places _session_variables changes. Keeping the borrowed view updated
+// here is what lets the copy/write APIs take plain borrowed pointers without allocating
+// a view on every frame.
+void Trick::VariableServerSession::add_session_variable(std::unique_ptr<VariableReference> var) {
+    _session_variable_view.push_back(var.get());
+    _session_variables.push_back(std::move(var));
+}
+
+void Trick::VariableServerSession::remove_session_variable(unsigned int index) {
+    _session_variable_view.erase(_session_variable_view.begin() + index);
+    _session_variables.erase(_session_variables.begin() + index);
+}
+
+void Trick::VariableServerSession::clear_session_variables() {
+    _session_variable_view.clear();
+    _session_variables.clear();
+}
+
 void Trick::VariableServerSession::disconnect_references() {
     for (auto& variable : _session_variables) {
         variable->tagAsInvalid();

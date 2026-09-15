@@ -140,12 +140,15 @@ TEST_F(VariableServerSession_test, large_message_ascii) {
     (void) memmgr.declare_extern_var(&big_arr, "int big_arr[4000]");
 
     // Create references for all of them
-    std::vector <std::unique_ptr<Trick::VariableReference>> vars;
+    // owned_vars releases the references; vars borrows them for the processing call.
+    std::vector <std::unique_ptr<Trick::VariableReference>> owned_vars;
+    std::vector <Trick::VariableReference *> vars;
     for (int i = 0; i < big_arr_size; i++) {
         std::string var_name = "big_arr[" + std::to_string(i) + "]";
         std::unique_ptr<Trick::VariableReference> var(new Trick::VariableReference(var_name));
         var->stageValue();
-        vars.push_back(std::move(var));
+        vars.push_back(var.get());
+        owned_vars.push_back(std::move(var));
     } 
 
     // Make a matcher for the Mock
@@ -219,12 +222,15 @@ TEST_F(VariableServerSession_test, large_message_binary) {
     (void) memmgr.declare_extern_var(&big_arr, "int big_arr[4000]");
 
     // Create references for all of them
-    std::vector <std::unique_ptr<Trick::VariableReference>> vars;
+    // owned_vars releases the references; vars borrows them for the processing call.
+    std::vector <std::unique_ptr<Trick::VariableReference>> owned_vars;
+    std::vector <Trick::VariableReference *> vars;
     for (int i = 0; i < big_arr_size; i++) {
         std::string var_name = "big_arr[" + std::to_string(i) + "]";
         std::unique_ptr<Trick::VariableReference> var(new Trick::VariableReference(var_name));
         var->stageValue();
-        vars.push_back(std::move(var));
+        vars.push_back(var.get());
+        owned_vars.push_back(std::move(var));
     } 
 
     // Create a matcher that parses and collects the arguments into a ParsedBinaryMessage

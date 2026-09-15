@@ -1,5 +1,52 @@
 #include "VariableReference_test.hh"
 
+#include <chrono>
+#include <future>
+#include <streambuf>
+#include <thread>
+
+// A streambuf that parks the writing thread the first time anything is written to it, and
+// holds it there until released. This gives a test a deterministic hook *inside* an
+// in-flight writeValueAscii(), which is the only way to exercise a units replacement that
+// races a format without relying on stress timing.
+class BlockingStreambuf : public std::streambuf
+{
+  public:
+    std::string       written;
+    std::promise<void> entered;
+    std::future<void>  release;
+
+  protected:
+    std::streamsize xsputn(const char* s, std::streamsize n) override
+    {
+        arrive();
+        written.append(s, static_cast<size_t>(n));
+        return n;
+    }
+
+    int overflow(int c) override
+    {
+        arrive();
+        if (c != EOF) {
+            written.push_back(static_cast<char>(c));
+        }
+        return c;
+    }
+
+  private:
+    void arrive()
+    {
+        if (!parked) {
+            parked = true;
+            entered.set_value();
+            release.wait();
+        }
+    }
+
+    bool parked = false;
+};
+
+
 TEST_F(VariableReference_test, getName) {
     // ARRANGE
     // Create a variable to make a reference for
@@ -511,4 +558,62 @@ TEST_F(VariableReference_test, byteswap_int_multidimensional_arr) {
             }
         }
     }
+}
+
+// Regression: replacing the requested units must not free the converter out from under a
+// format that is already running, and must not let a packet convert with one factor while
+// advertising another.
+//
+// This is reachable in the real system because VS_COPY_SCHEDULED + VS_WRITE_WHEN_COPIED
+// calls write_data() from a simulation job, and write_data() deliberately releases
+// _copy_mutex before formatting, while var_units() runs on the client session thread.
+TEST_F(VariableReference_test, units_replaced_while_ascii_write_is_in_flight) {
+    // ARRANGE
+    TestObject obj;
+    for (int i = 0; i < 4; i++) {
+        obj.lengths[i] = 1000.0 * (i + 1);
+    }
+    (void) memmgr->declare_extern_var(&obj, "TestObject obj");
+
+    Trick::VariableReference ref("obj.lengths");
+    ASSERT_EQ(ref.setRequestedUnits("m"), 0);
+    ref.stageValue();
+    ref.prepareForWrite();
+
+    BlockingStreambuf buf;
+    std::promise<void>  release;
+    buf.release = release.get_future();
+    auto entered = buf.entered.get_future();
+
+    std::ostream out(&buf);
+
+    // ACT
+    // Start the format and wait until it is genuinely mid-flight, after it has taken its
+    // view of the conversion but before it has finished converting all four elements.
+    std::thread writer([&] { ref.writeValueAscii(out); });
+    ASSERT_EQ(entered.wait_for(std::chrono::seconds(10)), std::future_status::ready)
+        << "the format never reached the stream";
+
+    // Replace the units from another thread. Before the snapshot change this freed the
+    // converter that the parked writer was still going to use for elements 2-4.
+    ASSERT_EQ(ref.setRequestedUnits("km"), 0);
+
+    release.set_value();
+    writer.join();
+
+    // ASSERT
+    // The format must have completed against the conversion it started with: values in
+    // metres, labelled in metres. A torn snapshot would advertise km.
+    EXPECT_NE(buf.written.find("{m}"), std::string::npos)
+        << "expected the label from the conversion in effect when the format started, got: " << buf.written;
+    EXPECT_EQ(buf.written.find("{km}"), std::string::npos)
+        << "format used one conversion but advertised another: " << buf.written;
+
+    // And a format started after the replacement must see the new conversion.
+    ref.stageValue();
+    ref.prepareForWrite();
+    std::stringstream after;
+    ref.writeValueAscii(after);
+    EXPECT_NE(after.str().find("{km}"), std::string::npos)
+        << "replacement was not published to later readers: " << after.str();
 }

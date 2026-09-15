@@ -80,7 +80,14 @@ Trick::ConnectionStatus Trick::VariableServerSessionThread::wait_for_accept() {
 void Trick::VariableServerSessionThread::preload_checkpoint() {
 
     // Stop variable server processing at the top of the processing loop.
-    force_thread_to_pause();
+    //
+    // A session that exited before acknowledging has nothing left to suspend: its loop is
+    // gone and cleanup() has already released the session and connection. Returning here
+    // rather than waiting is what keeps a checkpoint reload racing a client disconnect from
+    // hanging, and it also avoids touching a session that is being torn down.
+    if (!force_thread_to_pause()) {
+        return;
+    }
 
 
     // Make sure that the _session has been initialized

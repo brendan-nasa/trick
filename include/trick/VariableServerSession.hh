@@ -82,13 +82,13 @@ namespace Trick {
          @brief Copy given variable values from Trick memory to each variable's output buffer.
             cyclical indicated whether it is a normal cyclical copy or a send_once copy
         */
-        virtual int copy_sim_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, bool cyclical);
+        virtual int copy_sim_data(const std::vector<VariableReference *>& given_vars, bool cyclical);
         virtual int copy_sim_data();
 
         /**
          @brief Write data from the given var only to the appropriate format (var_ascii or var_binary) from variable output buffers to socket.
         */
-        virtual int write_data(const std::vector<std::unique_ptr<VariableReference>>& var, VS_MESSAGE_TYPE message_type) ;
+        virtual int write_data(const std::vector<VariableReference *>& var, VS_MESSAGE_TYPE message_type) ;
         virtual int write_data();
 
         int write_stdio(int stream, std::string text);
@@ -450,12 +450,26 @@ namespace Trick {
         virtual int transmit_file(std::string sie_file);
 
         // Helper methods to write out formatted data
-        virtual int write_binary_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, VS_MESSAGE_TYPE message_type);
-        virtual int write_ascii_data(const std::vector<std::unique_ptr<VariableReference>>& given_vars, VS_MESSAGE_TYPE message_type );
+        virtual int write_binary_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type);
+        virtual int write_ascii_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type );
 
         virtual VariableReference * find_session_variable(std::string name) const;
 
+        // Mutate only through add/remove/clear_session_variable() below, which keep the
+        // borrowed view in step. Nothing else should touch this directly.
         std::vector<std::unique_ptr<VariableReference>> _session_variables; /**<  trick_io(**) */
+
+        // Borrowed view over _session_variables, in the same order.
+        //
+        // The copy and write paths run on the simulation thread at top of frame, so they
+        // must not allocate. Assembling a view per call would mean two heap allocations per
+        // frame per session; rebuilding it only when the variable list actually changes
+        // keeps the processing APIs free of any storage-ownership policy at no per-frame cost.
+        std::vector<VariableReference *> _session_variable_view; /**<  trick_io(**) */
+
+        void add_session_variable(std::unique_ptr<VariableReference> var);
+        void remove_session_variable(unsigned int index);
+        void clear_session_variables();
 
         // Getters and setters for internal variables
         virtual long long get_cycle_tics() const; 

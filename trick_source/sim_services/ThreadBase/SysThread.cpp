@@ -37,6 +37,7 @@ Trick::SysThread::SysThread(std::string in_name) : ThreadBase(in_name) {
     pthread_cond_init(&_thread_wakeup_cv, NULL);
     _thread_has_paused = true;
     _thread_should_pause = false;
+    _thread_has_exited = false;
 
     pthread_mutex_lock(&(list_mutex()));
     all_sys_threads().push_back(this);
@@ -73,14 +74,37 @@ int Trick::SysThread::ensureAllShutdown() {
 }
 
 // To be called from main thread
-void Trick::SysThread::force_thread_to_pause() {
+bool Trick::SysThread::force_thread_to_pause() {
     pthread_mutex_lock(&_restart_pause_mutex);
-    // Tell thread to pause, and wait for it to signal that it has
+    // Tell thread to pause, and wait for it to signal that it has.
+    //
+    // A thread that has already exited can never call test_pause() again, so it can never
+    // acknowledge. Waiting only on _thread_has_paused would hang forever against a session
+    // that disconnected, hit an exit command, or failed a write after its last test_pause().
     _thread_should_pause = true;
-    while (!_thread_has_paused) {
+    while (!_thread_has_paused && !_thread_has_exited) {
         pthread_cond_wait(&_thread_has_paused_cv, &_restart_pause_mutex);
     }
+    bool paused = !_thread_has_exited;
     pthread_mutex_unlock(&_restart_pause_mutex);
+    return paused;
+}
+
+// To be called from the sys_thread as it leaves for good
+void Trick::SysThread::thread_shutdown() {
+    thread_shutdown(NULL, NULL);
+}
+
+void Trick::SysThread::thread_shutdown(void (*exit_handler) (void *), void * exit_arg) {
+    // Publish the terminal state before running the exit handler, so a waiter blocked in
+    // force_thread_to_pause() is released rather than waiting for an acknowledgement that
+    // is never coming. Broadcast because more than one waiter may be parked here.
+    pthread_mutex_lock(&_restart_pause_mutex);
+    _thread_has_exited = true;
+    pthread_cond_broadcast(&_thread_has_paused_cv);
+    pthread_mutex_unlock(&_restart_pause_mutex);
+
+    Trick::ThreadBase::thread_shutdown(exit_handler, exit_arg);
 }
 
 // To be called from main thread
