@@ -33,12 +33,24 @@ int Trick::VariableServer::suspendPreCheckpointReload() {
         listen_it.second->pause_listening();
     }
 
-    // Suspend session threads
+    // Suspend session threads.
+    //
+    // The thread pointers are collected under map_mutex but preload_checkpoint() is called
+    // without it held. preload_checkpoint() blocks in force_thread_to_pause() waiting for
+    // the session thread to reach test_pause(); if that thread is instead on its way out it
+    // runs exit_var_thread(), which takes map_mutex in delete_session()/delete_vst(). Holding
+    // map_mutex across the wait deadlocks the two. VariableServer::shutdown() documents and
+    // avoids the same trap.
+    std::vector<VariableServerSessionThread*> sessions;
     {
         std::lock_guard<std::mutex> lock(map_mutex) ;
-        for (const auto& vst_it : var_server_threads ) {    
-            vst_it.second->preload_checkpoint() ;
+        for (const auto& vst_it : var_server_threads ) {
+            sessions.push_back(vst_it.second) ;
         }
+    }
+
+    for (auto* vst : sessions) {
+        vst->preload_checkpoint() ;
     }
 
     return 0;
