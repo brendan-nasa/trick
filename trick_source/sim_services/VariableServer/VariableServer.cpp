@@ -130,19 +130,19 @@ Trick::VariableServerListenThread & Trick::VariableServer::get_listen_thread() {
 }
 
 void Trick::VariableServer::add_vst(pthread_t in_thread_id, VariableServerSessionThread * in_vst) {
-    std::lock_guard<std::mutex> lock(map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex);
     var_server_threads[in_thread_id] = in_vst ;
 }
 
 void Trick::VariableServer::add_session(pthread_t in_thread_id, VariableServerSession * in_session) {
-    std::lock_guard<std::mutex> lock(map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex);
     var_server_sessions[in_thread_id] = in_session ;
 }
 
 Trick::VariableServerSessionThread * Trick::VariableServer::get_vst(pthread_t thread_id) {
     std::map < pthread_t , Trick::VariableServerSessionThread * >::iterator it ;
     Trick::VariableServerSessionThread * ret = NULL ;
-    std::lock_guard<std::mutex> lock(map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex);
     it = var_server_threads.find(thread_id) ;
     if ( it != var_server_threads.end() ) {
         ret = (*it).second ;
@@ -152,7 +152,7 @@ Trick::VariableServerSessionThread * Trick::VariableServer::get_vst(pthread_t th
 
 Trick::VariableServerSession * Trick::VariableServer::get_session(pthread_t thread_id) {
     Trick::VariableServerSession * ret = NULL ;
-    std::lock_guard<std::mutex> lock(map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex);
     auto it = var_server_sessions.find(thread_id) ;
     if ( it != var_server_sessions.end() ) {
         ret = (*it).second ;
@@ -161,12 +161,12 @@ Trick::VariableServerSession * Trick::VariableServer::get_session(pthread_t thre
 }
 
 void Trick::VariableServer::delete_vst(pthread_t thread_id) {
-    std::lock_guard<std::mutex> lock(map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex);
     var_server_threads.erase(thread_id) ;
 }
 
 void Trick::VariableServer::delete_session(pthread_t thread_id) {
-    std::lock_guard<std::mutex> lock(map_mutex) ;
+    std::lock_guard<std::mutex> lock(map_mutex);
     var_server_sessions.erase(thread_id) ;
 }
 

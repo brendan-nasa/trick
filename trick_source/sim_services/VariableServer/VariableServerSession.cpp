@@ -49,7 +49,6 @@ Trick::VariableServerSession::~VariableServerSession() {
     // _session_variables owns its references and releases them here.
 }
 
-
 void Trick::VariableServerSession::set_connection(ClientConnection * conn) {
     _connection = conn;
     log_connection_opened();
@@ -90,14 +89,16 @@ bool Trick::VariableServerSession::get_exit_cmd() {
     return _exit_cmd ;
 }
 
-std::unique_lock<std::mutex> Trick::VariableServerSession::acquire_copy_lock() {
+std::unique_lock<std::mutex> Trick::VariableServerSession::acquire_copy_lock()
+{
     return std::unique_lock<std::mutex>(_copy_mutex);
 }
 
 // The only three places _session_variables changes. Keeping the borrowed view updated
 // here is what lets the copy/write APIs take plain borrowed pointers without allocating
 // a view on every frame.
-void Trick::VariableServerSession::add_session_variable(std::unique_ptr<VariableReference> var) {
+void Trick::VariableServerSession::add_session_variable(std::unique_ptr<VariableReference> var)
+{
     // Reserve both before touching either, so neither append can fail. Growing one after
     // the other had already been updated could throw and leave the view holding a
     // reference the owner never took -- which the next copy or write would dereference.
@@ -108,18 +109,21 @@ void Trick::VariableServerSession::add_session_variable(std::unique_ptr<Variable
     _session_variables.push_back(std::move(var));
 }
 
-void Trick::VariableServerSession::remove_session_variable(unsigned int index) {
+void Trick::VariableServerSession::remove_session_variable(unsigned int index)
+{
     _session_variable_view.erase(_session_variable_view.begin() + index);
     _session_variables.erase(_session_variables.begin() + index);
 }
 
-void Trick::VariableServerSession::clear_session_variables() {
+void Trick::VariableServerSession::clear_session_variables()
+{
     _session_variable_view.clear();
     _session_variables.clear();
 }
 
 void Trick::VariableServerSession::disconnect_references() {
-    for (auto& variable : _session_variables) {
+    for (auto& variable : _session_variables)
+    {
         variable->tagAsInvalid();
     }
 }
@@ -183,7 +187,8 @@ int Trick::VariableServerSession::handle_message() {
 }
 
 Trick::VariableReference * Trick::VariableServerSession::find_session_variable(std::string name) const {
-    for (const auto& ref : _session_variables) {
+    for (const auto& ref : _session_variables)
+    {
         // Look for matching name
         if (name.compare(ref->getName()) == 0) {
             return ref.get();

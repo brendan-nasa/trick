@@ -19,9 +19,9 @@
 
 int Trick::VariableServerSession::var_add(std::string in_name) {
     if (in_name == "time") {
-        add_session_variable(std::unique_ptr<VariableReference>(new VariableReference(in_name, &_time))) ;
+        add_session_variable(std::unique_ptr<VariableReference>(new VariableReference(in_name, &_time)));
     } else {
-        add_session_variable(std::unique_ptr<VariableReference>(new VariableReference(in_name))) ;
+        add_session_variable(std::unique_ptr<VariableReference>(new VariableReference(in_name)));
     }
 
     return(0) ;
@@ -77,7 +77,7 @@ int Trick::VariableServerSession::var_remove(std::string in_name) {
     for (unsigned int ii = 0 ; ii < _session_variables.size() ; ii++ ) {
         std::string var_name = _session_variables[ii]->getName();
         if ( ! var_name.compare(in_name) ) {
-            remove_session_variable(ii) ;
+            remove_session_variable(ii);
             break ;
         }
     }
@@ -211,7 +211,6 @@ int Trick::VariableServerSession::var_exists(std::string in_name) {
 }
 
 int Trick::VariableServerSession::var_clear() {
-
     clear_session_variables();
 
     return(0) ;

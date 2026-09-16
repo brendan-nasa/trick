@@ -15,24 +15,30 @@
 
 extern Trick::VariableServer* the_vs;
 
-Trick::VariableServerListenThread::VariableServerListenThread() : VariableServerListenThread (nullptr) {}
-
-Trick::VariableServerListenThread::VariableServerListenThread(std::unique_ptr<TCPClientListener> listener) :
- Trick::SysThread("VarServListen"),
- _requested_source_address(""),
- _requested_port(0),
- _user_requested_address(false),
- _broadcast(true),
- _listener(std::move(listener)),
- _multicast(new MulticastGroup())
+Trick::VariableServerListenThread::VariableServerListenThread()
+    : VariableServerListenThread(nullptr)
 {
-    if (_listener != nullptr) {
+}
+
+Trick::VariableServerListenThread::VariableServerListenThread(std::unique_ptr<TCPClientListener> listener)
+    : Trick::SysThread("VarServListen")
+    , _requested_source_address("")
+    , _requested_port(0)
+    , _user_requested_address(false)
+    , _broadcast(true)
+    , _listener(std::move(listener))
+    , _multicast(new MulticastGroup())
+{
+    if (_listener != nullptr)
+    {
         // If we were passed a listener
         // We assume it is already initialized
         _requested_source_address = _listener->getHostname();
         _requested_port = _listener->getPort();
         _user_requested_address = true;
-    } else {
+    }
+    else
+    {
         // Otherwise, make one
         _listener.reset(new TCPClientListener);
     }
@@ -46,7 +52,8 @@ Trick::VariableServerListenThread::~VariableServerListenThread() {
     // _listener and _multicast release themselves.
 }
 
-void Trick::VariableServerListenThread::set_multicast_group (std::unique_ptr<MulticastGroup> group) {
+void Trick::VariableServerListenThread::set_multicast_group(std::unique_ptr<MulticastGroup> group)
+{
     _multicast = std::move(group);
 }
 

@@ -11,41 +11,42 @@
 // races a format without relying on stress timing.
 class BlockingStreambuf : public std::streambuf
 {
-  public:
-    std::string       written;
-    std::promise<void> entered;
-    std::future<void>  release;
+    public:
+        std::string written;
+        std::promise<void> entered;
+        std::future<void> release;
 
-  protected:
-    std::streamsize xsputn(const char* s, std::streamsize n) override
-    {
-        arrive();
-        written.append(s, static_cast<size_t>(n));
-        return n;
-    }
-
-    int overflow(int c) override
-    {
-        arrive();
-        if (c != EOF) {
-            written.push_back(static_cast<char>(c));
+    protected:
+        std::streamsize xsputn(const char* s, std::streamsize n) override
+        {
+            arrive();
+            written.append(s, static_cast<size_t>(n));
+            return n;
         }
-        return c;
-    }
 
-  private:
-    void arrive()
-    {
-        if (!parked) {
-            parked = true;
-            entered.set_value();
-            release.wait();
+        int overflow(int c) override
+        {
+            arrive();
+            if (c != EOF)
+            {
+                written.push_back(static_cast<char>(c));
+            }
+            return c;
         }
-    }
 
-    bool parked = false;
+    private:
+        void arrive()
+        {
+            if (!parked)
+            {
+                parked = true;
+                entered.set_value();
+                release.wait();
+            }
+        }
+
+        bool parked = false;
 };
-
 
 TEST_F(VariableReference_test, getName) {
     // ARRANGE
@@ -567,13 +568,15 @@ TEST_F(VariableReference_test, byteswap_int_multidimensional_arr) {
 // This is reachable in the real system because VS_COPY_SCHEDULED + VS_WRITE_WHEN_COPIED
 // calls write_data() from a simulation job, and write_data() deliberately releases
 // _copy_mutex before formatting, while var_units() runs on the client session thread.
-TEST_F(VariableReference_test, units_replaced_while_ascii_write_is_in_flight) {
+TEST_F(VariableReference_test, units_replaced_while_ascii_write_is_in_flight)
+{
     // ARRANGE
     TestObject obj;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         obj.lengths[i] = 1000.0 * (i + 1);
     }
-    (void) memmgr->declare_extern_var(&obj, "TestObject obj");
+    (void)memmgr->declare_extern_var(&obj, "TestObject obj");
 
     Trick::VariableReference ref("obj.lengths");
     ASSERT_EQ(ref.setRequestedUnits("m"), 0);
@@ -581,8 +584,8 @@ TEST_F(VariableReference_test, units_replaced_while_ascii_write_is_in_flight) {
     ref.prepareForWrite();
 
     BlockingStreambuf buf;
-    std::promise<void>  release;
-    buf.release = release.get_future();
+    std::promise<void> release;
+    buf.release  = release.get_future();
     auto entered = buf.entered.get_future();
 
     std::ostream out(&buf);

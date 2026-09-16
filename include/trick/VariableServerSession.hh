@@ -5,17 +5,16 @@ PURPOSE: (Represent the state of a variable server connection.)
 #ifndef VSSESSION_HH
 #define VSSESSION_HH
 
-#include <memory>
-#include <mutex>
-#include <vector>
-#include <string>
-
-#include "trick/VariableReference.hh"
 #include "trick/ClientConnection.hh"
-#include "trick/variable_server_sync_types.h"
+#include "trick/VariableReference.hh"
 #include "trick/tc.h"
 #include "trick/variable_server_message_types.h"
+#include "trick/variable_server_sync_types.h"
 
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 namespace Trick {
     class VariableServerSession {
@@ -82,13 +81,13 @@ namespace Trick {
          @brief Copy given variable values from Trick memory to each variable's output buffer.
             cyclical indicated whether it is a normal cyclical copy or a send_once copy
         */
-        virtual int copy_sim_data(const std::vector<VariableReference *>& given_vars, bool cyclical);
+        virtual int copy_sim_data(const std::vector<VariableReference*>& given_vars, bool cyclical);
         virtual int copy_sim_data();
 
         /**
          @brief Write data from the given var only to the appropriate format (var_ascii or var_binary) from variable output buffers to socket.
         */
-        virtual int write_data(const std::vector<VariableReference *>& var, VS_MESSAGE_TYPE message_type) ;
+        virtual int write_data(const std::vector<VariableReference*>& var, VS_MESSAGE_TYPE message_type);
         virtual int write_data();
 
         int write_stdio(int stream, std::string text);
@@ -448,7 +447,7 @@ namespace Trick {
         static int instance_counter;
         static std::string log_subdir;
 
-        std::mutex _copy_mutex;     /**<  trick_io(**) */
+        std::mutex _copy_mutex; /**<  trick_io(**) */
 
         ClientConnection * _connection;  /**<  trick_io(**) */
 
@@ -471,7 +470,7 @@ namespace Trick {
         // must not allocate. Assembling a view per call would mean two heap allocations per
         // frame per session; rebuilding it only when the variable list actually changes
         // keeps the processing APIs free of any storage-ownership policy at no per-frame cost.
-        std::vector<VariableReference *> _session_variable_view; /**<  trick_io(**) */
+        std::vector<VariableReference*> _session_variable_view; /**<  trick_io(**) */
 
         void add_session_variable(std::unique_ptr<VariableReference> var);
         void remove_session_variable(unsigned int index);

@@ -89,7 +89,7 @@ TEST_F(VariableServerListenThread_test, init_listen_device) {
     EXPECT_CALL(*listener, initialize())
         .WillOnce(Return(0));
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
 
     // ACT
     listen_thread.init_listen_device();
@@ -103,7 +103,7 @@ TEST_F(VariableServerListenThread_test, init_listen_device_fails) {
     EXPECT_CALL(*listener, initialize())
         .WillOnce(Return(-1));
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
 
     // ACT
     int status = listen_thread.init_listen_device();
@@ -118,7 +118,7 @@ TEST_F(VariableServerListenThread_test, get_hostname) {
     // ARRANGE
     setup_normal_listener_expectations(listener);
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
 
     // ACT
     const char * hostname = listen_thread.get_hostname();
@@ -131,7 +131,7 @@ TEST_F(VariableServerListenThread_test, get_port) {
     // ARRANGE
     setup_normal_listener_expectations(listener);
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
 
     // ACT
     int port = listen_thread.get_port();
@@ -144,7 +144,7 @@ TEST_F(VariableServerListenThread_test, get_port_returns_requested) {
     // ARRANGE
     setup_normal_listener_expectations(listener);
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
 
     // ACT
     listen_thread.set_port(4321);
@@ -157,7 +157,7 @@ TEST_F(VariableServerListenThread_test, get_port_returns_requested) {
 TEST_F(VariableServerListenThread_test, check_and_move_listen_device_init_fails) {
     // ARRANGE
     setup_normal_listener_expectations(listener);
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_port(4321);
 
     EXPECT_CALL(*listener, disconnect());
@@ -176,7 +176,7 @@ TEST_F(VariableServerListenThread_test, check_and_move_listen_device_init_fails)
 TEST_F(VariableServerListenThread_test, check_and_move_listen_device) {
     // ARRANGE
     setup_normal_listener_expectations(listener);
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_port(4321);
 
     EXPECT_CALL(*listener, disconnect());
@@ -201,7 +201,7 @@ TEST_F(VariableServerListenThread_test, run_thread) {
     EXPECT_CALL(*listener, checkForNewConnections())
         .WillRepeatedly(Return(false));
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_multicast_group(std::unique_ptr<Trick::MulticastGroup>(mcast));
 
     // ACT
@@ -233,7 +233,7 @@ TEST_F(VariableServerListenThread_test, run_thread_no_broadcast) {
     EXPECT_CALL(*listener, checkForNewConnections())
         .WillRepeatedly(Return(false));
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_broadcast(false);
     listen_thread.set_multicast_group(std::unique_ptr<Trick::MulticastGroup>(mcast));
 
@@ -265,7 +265,7 @@ TEST_F(VariableServerListenThread_test, run_thread_turn_on_broadcast) {
         .WillOnce(Return(0))
         .WillRepeatedly(Return(1));
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_broadcast(false);
     listen_thread.set_multicast_group(std::unique_ptr<Trick::MulticastGroup>(mcast));
 
@@ -307,18 +307,15 @@ TEST_F(VariableServerListenThread_test, accept_connection) {
     // The session thread owns the accepted connection and deletes it on the way out, so
     // it must be heap allocated. gmock verifies these expectations when it is destroyed.
     auto* connection = new MockTCPConnection;
-    EXPECT_CALL(*connection, start())
-        .WillOnce(Return(0));
+    EXPECT_CALL(*connection, start()).WillOnce(Return(0));
 
-    EXPECT_CALL(*connection, read(_, _))
-        .WillOnce(Return(-1));
+    EXPECT_CALL(*connection, read(_, _)).WillOnce(Return(-1));
 
     EXPECT_CALL(*connection, disconnect());
 
-    EXPECT_CALL(*listener, setUpNewConnection())
-        .WillOnce(Return(connection));
+    EXPECT_CALL(*listener, setUpNewConnection()).WillOnce(Return(connection));
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_broadcast(false);
     listen_thread.set_multicast_group(std::unique_ptr<Trick::MulticastGroup>(mcast));
 
@@ -364,7 +361,7 @@ TEST_F(VariableServerListenThread_test, reject_connection_when_disabled)
 
     EXPECT_CALL(*listener, setUpNewConnection()).WillOnce(Return(connection));
 
-    Trick::VariableServerListenThread listen_thread{std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_broadcast(false);
     listen_thread.set_multicast_group(std::unique_ptr<Trick::MulticastGroup>(mcast));
 
@@ -400,15 +397,13 @@ TEST_F(VariableServerListenThread_test, connection_fails) {
     // The session thread owns the accepted connection; on the failure path the listen
     // thread deletes the thread, which releases it. So it must be heap allocated.
     auto* connection = new MockTCPConnection;
-    EXPECT_CALL(*connection, start())
-        .WillOnce(Return(-1));
+    EXPECT_CALL(*connection, start()).WillOnce(Return(-1));
 
     EXPECT_CALL(*connection, disconnect());
 
-    EXPECT_CALL(*listener, setUpNewConnection())
-        .WillOnce(Return(connection));
+    EXPECT_CALL(*listener, setUpNewConnection()).WillOnce(Return(connection));
 
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
     listen_thread.set_broadcast(false);
     listen_thread.set_multicast_group(std::unique_ptr<Trick::MulticastGroup>(mcast));
 
@@ -428,7 +423,7 @@ TEST_F(VariableServerListenThread_test, restart_fails) {
     // ARRANGE
 
     setup_normal_listener_expectations(listener);
-    Trick::VariableServerListenThread listen_thread {std::unique_ptr<Trick::TCPClientListener>(listener)};
+    Trick::VariableServerListenThread listen_thread { std::unique_ptr<Trick::TCPClientListener>(listener) };
 
     EXPECT_CALL(*listener, restart());
     EXPECT_CALL(*listener, validateSourceAddress(_))

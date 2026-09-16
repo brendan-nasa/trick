@@ -15,12 +15,16 @@ Trick::VariableServer * Trick::VariableServerSessionThread::_vs = NULL ;
 static int instance_num = 0;
 
 Trick::VariableServerSessionThread::VariableServerSessionThread()
- : VariableServerSessionThread (std::unique_ptr<VariableServerSession>(new VariableServerSession())) {}
+    : VariableServerSessionThread(std::unique_ptr<VariableServerSession>(new VariableServerSession()))
+{
+}
 
-Trick::VariableServerSessionThread::VariableServerSessionThread(std::unique_ptr<VariableServerSession> session) :
- Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(std::move(session)),
-   _saved_pause_cmd(false) {
-
+Trick::VariableServerSessionThread::VariableServerSessionThread(std::unique_ptr<VariableServerSession> session)
+    : Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++)))
+    , _debug(0)
+    , _session(std::move(session))
+    , _saved_pause_cmd(false)
+{
     _connection_status = CONNECTION_PENDING ;
 
 
@@ -42,7 +46,8 @@ std::ostream& Trick::operator<< (std::ostream& s, Trick::VariableServerSessionTh
 
     {
         std::lock_guard<std::mutex> lock(vst._connection_status_mutex);
-        if (vst._connection_status == CONNECTION_SUCCESS) {
+        if (vst._connection_status == CONNECTION_SUCCESS)
+        {
             s << *(vst._session);
         }
     }
@@ -63,12 +68,12 @@ void Trick::VariableServerSessionThread::set_client_tag(std::string tag) {
     _connection->setClientTag(tag);
 }
 
-void Trick::VariableServerSessionThread::set_connection(std::unique_ptr<Trick::ClientConnection> in_connection) {
+void Trick::VariableServerSessionThread::set_connection(std::unique_ptr<Trick::ClientConnection> in_connection)
+{
     _connection = std::move(in_connection);
 }
 
 Trick::ConnectionStatus Trick::VariableServerSessionThread::wait_for_accept() {
-
     {
         std::unique_lock<std::mutex> lock(_connection_status_mutex);
         _connection_status_cv.wait(lock, [this] { return _connection_status != CONNECTION_PENDING; });
@@ -79,22 +84,20 @@ Trick::ConnectionStatus Trick::VariableServerSessionThread::wait_for_accept() {
 
 // Gets called from the main thread as a job
 void Trick::VariableServerSessionThread::preload_checkpoint() {
-
     // Stop variable server processing at the top of the processing loop.
     //
     // A session that exited before acknowledging has nothing left to suspend: its loop is
     // gone and cleanup() has already released the session and connection. Returning here
     // rather than waiting is what keeps a checkpoint reload racing a client disconnect from
     // hanging, and it also avoids touching a session that is being torn down.
-    if (!force_thread_to_pause()) {
+    if (!force_thread_to_pause())
+    {
         return;
     }
-
 
     // Make sure that the _session has been initialized
     std::lock_guard<std::mutex> lock(_connection_status_mutex);
     if (_connection_status == CONNECTION_SUCCESS) {
-
         // Let the thread complete any data copying it has to do and then suspend data
         // copying until the checkpoint is reloaded. The lock releases at the end of this
         // scope, including if disconnect_references() throws.
@@ -117,7 +120,8 @@ void Trick::VariableServerSessionThread::restart() {
     // A session that exited has already been deregistered and cleaned up, so there is no
     // connection to restart and no saved pause state to restore. It can still be reached
     // from here if it exits between the resume phase enumerating the map and calling in.
-    if (thread_has_exited()) {
+    if (thread_has_exited())
+    {
         return;
     }
 
@@ -126,8 +130,9 @@ void Trick::VariableServerSessionThread::restart() {
 
     {
         std::lock_guard<std::mutex> lock(_connection_status_mutex);
-        if (_connection_status == CONNECTION_SUCCESS) {
-            _session->set_pause(_saved_pause_cmd) ;
+        if (_connection_status == CONNECTION_SUCCESS)
+        {
+            _session->set_pause(_saved_pause_cmd);
         }
     }
 
@@ -143,7 +148,8 @@ void Trick::VariableServerSessionThread::cleanup() {
     // find a dangling pointer.
     _session.reset();
 
-    if (_connection != nullptr) {
+    if (_connection != nullptr)
+    {
         _connection->disconnect();
         _connection.reset();
     }

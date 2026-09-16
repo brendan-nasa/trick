@@ -90,7 +90,7 @@ namespace Trick {
         // Read via std::atomic_load, replaced via std::atomic_store: setRequestedUnits()
         // runs on the client session thread while writeValueAscii() can run concurrently on
         // the simulation thread under VS_COPY_SCHEDULED + VS_WRITE_WHEN_COPIED.
-        std::shared_ptr<const VariableReferenceUnits> _units;  // ** conversion factor + label
+        std::shared_ptr<const VariableReferenceUnits> _units; // ** conversion factor + label
         TRICK_TYPE _trick_type ;             // -- Trick type of this variable
         bool _used_stl_indexing;             // -- indicates if reference involved STL container indexing
 

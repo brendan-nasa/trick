@@ -6,19 +6,19 @@
 #ifndef VariableServerSessionThread_HH
 #define VariableServerSessionThread_HH
 
+#include "trick/ClientConnection.hh"
+#include "trick/SysThread.hh"
+#include "trick/TCPClientListener.hh"
+#include "trick/VariableServerSession.hh"
+#include "trick/variable_server_message_types.h"
+#include "trick/variable_server_sync_types.h"
+
 #include <condition_variable>
+#include <iostream>
 #include <memory>
 #include <mutex>
-#include <string>
-#include <iostream>
 #include <pthread.h>
-#include "trick/SysThread.hh"
-#include "trick/VariableServerSession.hh"
-#include "trick/variable_server_sync_types.h"
-#include "trick/variable_server_message_types.h"
-
-#include "trick/ClientConnection.hh"
-#include "trick/TCPClientListener.hh"
+#include <string>
 
 namespace Trick {
 
@@ -50,9 +50,9 @@ namespace Trick {
             /** Takes ownership of the session. Hidden from SWIG: the move-only parameter
                 cannot be wrapped without ownership typemaps, and Python never injects a
                 session. */
-            VariableServerSessionThread(std::unique_ptr<VariableServerSession> session) ;
+            VariableServerSessionThread(std::unique_ptr<VariableServerSession> session);
 #endif
-            
+
             virtual ~VariableServerSessionThread() ;
             /**
              @brief static routine called from S_define to set the VariableServer pointer for all threads.
@@ -94,16 +94,16 @@ namespace Trick {
             static VariableServer * _vs ;
 
             /** Manages the variable list  */
-            std::unique_ptr<VariableServerSession> _session;   /**<  trick_io(**) */
+            std::unique_ptr<VariableServerSession> _session; /**<  trick_io(**) */
 
             /** Connection to the client */
-            std::unique_ptr<ClientConnection> _connection;     /**<  trick_io(**) */
+            std::unique_ptr<ClientConnection> _connection; /**<  trick_io(**) */
 
             /** Value (1,2,or 3) that causes the variable server to output increasing amounts of debug information.\n */
             int _debug ;                      /**<  trick_io(**) */
 
             ConnectionStatus _connection_status ;       /**<  trick_io(**) */
-            std::mutex _connection_status_mutex;          /**<  trick_io(**) */
+            std::mutex _connection_status_mutex;        /**<  trick_io(**) */
             std::condition_variable _connection_status_cv; /**<  trick_io(**) */
 
             bool _saved_pause_cmd;

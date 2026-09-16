@@ -43,14 +43,16 @@ int Trick::VariableServer::suspendPreCheckpointReload() {
     // avoids the same trap.
     std::vector<VariableServerSessionThread*> sessions;
     {
-        std::lock_guard<std::mutex> lock(map_mutex) ;
-        for (const auto& vst_it : var_server_threads ) {
-            sessions.push_back(vst_it.second) ;
+        std::lock_guard<std::mutex> lock(map_mutex);
+        for (const auto& vst_it : var_server_threads)
+        {
+            sessions.push_back(vst_it.second);
         }
     }
 
-    for (auto* vst : sessions) {
-        vst->preload_checkpoint() ;
+    for (auto* vst : sessions)
+    {
+        vst->preload_checkpoint();
     }
 
     return 0;
@@ -62,9 +64,10 @@ int Trick::VariableServer::resumePostCheckpointReload() {
 
     // Resume all session threads
     {
-        std::lock_guard<std::mutex> lock(map_mutex) ;
-        for (const auto& vst_it : var_server_threads ) {
-            vst_it.second->restart() ;
+        std::lock_guard<std::mutex> lock(map_mutex);
+        for (const auto& vst_it : var_server_threads)
+        {
+            vst_it.second->restart();
         }
     }
 

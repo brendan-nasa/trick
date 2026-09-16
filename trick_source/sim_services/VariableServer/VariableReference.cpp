@@ -21,8 +21,8 @@
 // The unit conversion in effect, published as an immutable whole. See VariableReference.hh.
 struct Trick::VariableReferenceUnits
 {
-    CvConverterPtr converter;
-    std::string    requested_units;
+        CvConverterPtr converter;
+        std::string requested_units;
 };
 
 // Publish a new conversion. Readers already holding the previous one keep it alive.
@@ -32,7 +32,7 @@ static std::shared_ptr<const Trick::VariableReferenceUnits> make_units(Trick::Cv
                                                                        const std::string& label)
 {
     return std::shared_ptr<const Trick::VariableReferenceUnits>(
-        new Trick::VariableReferenceUnits{std::move(converter), label});
+        new Trick::VariableReferenceUnits { std::move(converter), label });
 }
 
 // Static variables to be addresses that are known to be the error ref address
@@ -123,7 +123,7 @@ Trick::VariableReference::VariableReference(std::string var_name, double* time) 
     _stage_buffer.assign(_size, 0);
     _write_buffer.assign(_size, 0);
 
-    _units = make_units(CvConverterPtr(cv_get_trivial()), "s");
+    _units      = make_units(CvConverterPtr(cv_get_trivial()), "s");
     _base_units = _var_info->attr->units;
     _name = _var_info->reference;
 }
@@ -216,7 +216,7 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
     _stage_buffer.assign(_size, 0);
     _write_buffer.assign(_size, 0);
 
-    _units = make_units(CvConverterPtr(cv_get_trivial()), "");
+    _units      = make_units(CvConverterPtr(cv_get_trivial()), "");
     _base_units = _var_info->attr->units;
     _name = _var_info->reference;
 
@@ -628,7 +628,8 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
         }
     } //end while
 
-    if (units->requested_units != "") {
+    if (units->requested_units != "")
+    {
         if ( _var_info->attr->mods & TRICK_MODS_UNITSDASHDASH ) {
             out << " {--}";
         } else {

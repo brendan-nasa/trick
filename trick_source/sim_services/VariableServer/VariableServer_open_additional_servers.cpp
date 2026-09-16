@@ -1,13 +1,13 @@
-
-#include <stdio.h>
-#include <memory>
 #include "trick/VariableServer.hh"
+
+#include "trick/TCPClientListener.hh"
+#include "trick/TCPConnection.hh"
+#include "trick/UDPConnection.hh"
 #include "trick/message_proto.h"
 #include "trick/message_type.h"
 
-#include "trick/TCPConnection.hh"
-#include "trick/UDPConnection.hh"
-#include "trick/TCPClientListener.hh"
+#include <memory>
+#include <stdio.h>
 
 int Trick::VariableServer::create_tcp_socket(const char * address, unsigned short in_port ) {
     // Open a VariableServerListenThread to manage this server
@@ -23,7 +23,7 @@ int Trick::VariableServer::create_tcp_socket(const char * address, unsigned shor
     std::string set_address = listener->getHostname();
     int set_port = listener->getPort();
 
-    Trick::VariableServerListenThread * new_listen_thread = new Trick::VariableServerListenThread(std::move(listener)) ;
+    Trick::VariableServerListenThread* new_listen_thread = new Trick::VariableServerListenThread(std::move(listener));
 
     new_listen_thread->copy_cpus(listen_thread.get_cpus()) ;
     new_listen_thread->create_thread() ;

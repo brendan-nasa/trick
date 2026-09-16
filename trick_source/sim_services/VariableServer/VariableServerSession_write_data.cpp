@@ -197,11 +197,11 @@ int Trick::VariableServerSession::write_ascii_data(const std::vector<VariableRef
     return result;
 }
 
-int Trick::VariableServerSession::write_data() {
-    return write_data(_session_variable_view, VS_VAR_LIST);
-}
+int Trick::VariableServerSession::write_data() { return write_data(_session_variable_view, VS_VAR_LIST); }
 
-int Trick::VariableServerSession::write_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type) { 
+int Trick::VariableServerSession::write_data(const std::vector<VariableReference*>& given_vars,
+                                             VS_MESSAGE_TYPE message_type)
+{
     // do not send anything when there are no variables!
     if ( given_vars.size() == 0) {
         return(0);
@@ -209,8 +209,9 @@ int Trick::VariableServerSession::write_data(const std::vector<VariableReference
 
     int result = 0;
 
-    std::unique_lock<std::mutex> lock(_copy_mutex, std::try_to_lock) ;
-    if ( lock.owns_lock() ) {
+    std::unique_lock<std::mutex> lock(_copy_mutex, std::try_to_lock);
+    if (lock.owns_lock())
+    {
         // Check that all of the variables are staged
         for (VariableReference * variable : given_vars ) {
             if (!variable->isStaged()) {
@@ -225,7 +226,7 @@ int Trick::VariableServerSession::write_data(const std::vector<VariableReference
 
         // Release the copy lock before writing. Writing can block on the client socket
         // and must not hold off the sim-side copy while it does.
-        lock.unlock() ;
+        lock.unlock();
 
         // Send out in correct format
         if (_binary_data) {

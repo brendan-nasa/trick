@@ -2,33 +2,26 @@
 PURPOSE:                     ( Tests for the VariableServerSession class )
 *******************************************************************************/
 
-#include <memory>
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-
-#include <iostream>
-#include <iomanip>
-#include <limits>
-#include <vector>
-
 #include "trick/MemoryManager.hh"
+#include "trick/Mock/MockClientConnection.hh"
+#include "trick/Mock/MockExecutive.hh"
+#include "trick/Mock/MockInputProcessor.hh"
+#include "trick/Mock/MockMessageCustomManager.hh"
+#include "trick/Mock/MockMessagePublisher.hh"
+#include "trick/Mock/MockRealtimeSync.hh"
+#include "trick/Mock/MockVariableServerSession.hh"
 #include "trick/UdUnits.hh"
-
-
-
-#include "trick/message_type.h"
 #include "trick/VariableServerSession.hh"
+#include "trick/message_type.h"
 #include "trick/var_binary_parser.hh"
 
-#include "trick/Mock/MockExecutive.hh"
-#include "trick/Mock/MockRealtimeSync.hh"
-#include "trick/Mock/MockMessagePublisher.hh"
-#include "trick/Mock/MockMessageCustomManager.hh"
-#include "trick/Mock/MockInputProcessor.hh"
-#include "trick/Mock/MockClientConnection.hh"
-#include "trick/Mock/MockVariableServerSession.hh"
-
-
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <vector>
 
 using ::testing::AtLeast;
 using ::testing::_;
@@ -141,7 +134,7 @@ TEST_F(VariableServerSession_test, large_message_ascii) {
 
     // Create references for all of them
     // owned_vars releases the references; vars borrows them for the processing call.
-    std::vector <std::unique_ptr<Trick::VariableReference>> owned_vars;
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned_vars;
     std::vector <Trick::VariableReference *> vars;
     for (int i = 0; i < big_arr_size; i++) {
         std::string var_name = "big_arr[" + std::to_string(i) + "]";
@@ -223,7 +216,7 @@ TEST_F(VariableServerSession_test, large_message_binary) {
 
     // Create references for all of them
     // owned_vars releases the references; vars borrows them for the processing call.
-    std::vector <std::unique_ptr<Trick::VariableReference>> owned_vars;
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned_vars;
     std::vector <Trick::VariableReference *> vars;
     for (int i = 0; i < big_arr_size; i++) {
         std::string var_name = "big_arr[" + std::to_string(i) + "]";

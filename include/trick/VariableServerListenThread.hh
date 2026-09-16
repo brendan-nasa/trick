@@ -6,15 +6,15 @@
 #ifndef VARIABLESERVERLISTENTHREAD_HH
 #define VARIABLESERVERLISTENTHREAD_HH
 
+#include "trick/MulticastGroup.hh"
+#include "trick/SysThread.hh"
+#include "trick/TCPClientListener.hh"
+
 #include <condition_variable>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <iostream>
-#include "trick/TCPClientListener.hh"
-#include "trick/SysThread.hh"
-#include "trick/MulticastGroup.hh"
-
 
 namespace Trick {
 
@@ -65,7 +65,7 @@ namespace Trick {
 #ifndef SWIG
             /** Takes ownership of the group, replacing any existing one. Hidden from SWIG
                 for the same reason as the owning constructor. */
-            void set_multicast_group (std::unique_ptr<MulticastGroup> group);
+            void set_multicast_group(std::unique_ptr<MulticastGroup> group);
 #endif
 
             virtual void dump( std::ostream & oss = std::cout ) ;
@@ -91,15 +91,14 @@ namespace Trick {
             bool _broadcast ;       /**<  trick_units(--) */
 
             /** The listen device */
-            std::unique_ptr<TCPClientListener> _listener;   /**<  trick_io(**) trick_units(--)  */
+            std::unique_ptr<TCPClientListener> _listener; /**<  trick_io(**) trick_units(--)  */
 
             /* Multicast broadcaster */
-            std::unique_ptr<MulticastGroup> _multicast;     /**<  trick_io(**) trick_units(--)  */
+            std::unique_ptr<MulticastGroup> _multicast; /**<  trick_io(**) trick_units(--)  */
 
             unsigned int pendingConnections;         /**<  trick_io(**) trick_units(--)  */
             std::mutex connectionMutex;              /**<  trick_io(**) trick_units(--)  */
             std::condition_variable noPendingConnections_cv; /**<  trick_io(**) trick_units(--)  */
-
     } ;
 
 }

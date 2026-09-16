@@ -37,7 +37,7 @@ Trick::SysThread::SysThread(std::string in_name) : ThreadBase(in_name) {
     pthread_cond_init(&_thread_wakeup_cv, NULL);
     _thread_has_paused = true;
     _thread_should_pause = false;
-    _thread_has_exited = false;
+    _thread_has_exited   = false;
 
     pthread_mutex_lock(&(list_mutex()));
     all_sys_threads().push_back(this);
@@ -74,7 +74,8 @@ int Trick::SysThread::ensureAllShutdown() {
 }
 
 // To be called from main thread
-bool Trick::SysThread::force_thread_to_pause() {
+bool Trick::SysThread::force_thread_to_pause()
+{
     pthread_mutex_lock(&_restart_pause_mutex);
     // Tell thread to pause, and wait for it to signal that it has.
     //
@@ -82,7 +83,8 @@ bool Trick::SysThread::force_thread_to_pause() {
     // acknowledge. Waiting only on _thread_has_paused would hang forever against a session
     // that disconnected, hit an exit command, or failed a write after its last test_pause().
     _thread_should_pause = true;
-    while (!_thread_has_paused && !_thread_has_exited) {
+    while (!_thread_has_paused && !_thread_has_exited)
+    {
         pthread_cond_wait(&_thread_has_paused_cv, &_restart_pause_mutex);
     }
     bool paused = !_thread_has_exited;
@@ -91,11 +93,10 @@ bool Trick::SysThread::force_thread_to_pause() {
 }
 
 // To be called from the sys_thread as it leaves for good
-void Trick::SysThread::thread_shutdown() {
-    thread_shutdown(NULL, NULL);
-}
+void Trick::SysThread::thread_shutdown() { thread_shutdown(NULL, NULL); }
 
-void Trick::SysThread::thread_shutdown(void (*exit_handler) (void *), void * exit_arg) {
+void Trick::SysThread::thread_shutdown(void (*exit_handler)(void*), void* exit_arg)
+{
     // Run teardown first, then publish. Observing _thread_has_exited has to mean this
     // thread is already deregistered and cleaned up.
     //
@@ -104,7 +105,8 @@ void Trick::SysThread::thread_shutdown(void (*exit_handler) (void *), void * exi
     // phase could enumerate it and restart() it with pause state suspension never saved.
     // The pause wait is outside map_mutex, so ordering teardown first does not reintroduce
     // the lock inversion that VariableServer_restart.cpp fixed.
-    if (exit_handler != NULL) {
+    if (exit_handler != NULL)
+    {
         exit_handler(exit_arg);
     }
 
@@ -118,7 +120,8 @@ void Trick::SysThread::thread_shutdown(void (*exit_handler) (void *), void * exi
     Trick::ThreadBase::thread_shutdown(NULL, NULL);
 }
 
-bool Trick::SysThread::thread_has_exited() {
+bool Trick::SysThread::thread_has_exited()
+{
     pthread_mutex_lock(&_restart_pause_mutex);
     const bool exited = _thread_has_exited;
     pthread_mutex_unlock(&_restart_pause_mutex);

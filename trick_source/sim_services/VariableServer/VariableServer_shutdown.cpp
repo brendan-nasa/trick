@@ -40,7 +40,7 @@ int Trick::VariableServer::shutdown() {
     // and the GIL is free.
     std::vector<VariableServerSessionThread*> sessions;
     {
-        std::lock_guard<std::mutex> lock(map_mutex) ;
+        std::lock_guard<std::mutex> lock(map_mutex);
         for (auto& thread : var_server_threads)
         {
             thread.second->request_shutdown();
@@ -60,7 +60,7 @@ int Trick::VariableServer::shutdown() {
     {
         bool all_stopped;
         {
-            std::lock_guard<std::mutex> lock(map_mutex) ;
+            std::lock_guard<std::mutex> lock(map_mutex);
             all_stopped = var_server_threads.empty();
         }
 
@@ -82,7 +82,7 @@ int Trick::VariableServer::shutdown() {
     {
         bool still_running;
         {
-            std::lock_guard<std::mutex> lock(map_mutex) ;
+            std::lock_guard<std::mutex> lock(map_mutex);
             still_running = (var_server_threads.count(thread->get_pthread_id()) > 0);
         }
 

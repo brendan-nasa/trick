@@ -43,7 +43,7 @@ namespace Trick {
               Called from the thread itself on every cooperative exit path.
             */
             virtual void thread_shutdown();
-            virtual void thread_shutdown(void (*exit_handler) (void *), void * exit_arg);
+            virtual void thread_shutdown(void (*exit_handler)(void*), void* exit_arg);
 
             /**
              @brief True once this thread has finished its teardown and left for good.
@@ -80,8 +80,7 @@ namespace Trick {
             bool _thread_has_paused;                    /**<  trick_io(**) */
 
             // Terminal state. Once set the thread will never acknowledge a pause again.
-            bool _thread_has_exited;                    /**<  trick_io(**) */
-
+            bool _thread_has_exited; /**<  trick_io(**) */
 
             // Had to use Construct On First Use here to avoid the static initialziation fiasco
             static pthread_mutex_t& list_mutex();
