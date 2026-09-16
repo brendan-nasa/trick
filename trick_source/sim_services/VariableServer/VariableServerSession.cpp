@@ -98,6 +98,12 @@ std::unique_lock<std::mutex> Trick::VariableServerSession::acquire_copy_lock() {
 // here is what lets the copy/write APIs take plain borrowed pointers without allocating
 // a view on every frame.
 void Trick::VariableServerSession::add_session_variable(std::unique_ptr<VariableReference> var) {
+    // Reserve both before touching either, so neither append can fail. Growing one after
+    // the other had already been updated could throw and leave the view holding a
+    // reference the owner never took -- which the next copy or write would dereference.
+    _session_variables.reserve(_session_variables.size() + 1);
+    _session_variable_view.reserve(_session_variable_view.size() + 1);
+
     _session_variable_view.push_back(var.get());
     _session_variables.push_back(std::move(var));
 }

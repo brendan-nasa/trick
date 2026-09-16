@@ -27,8 +27,12 @@ namespace Trick {
 
         public:
             VariableServerListenThread() ;
-            /** Takes ownership of the listener. */
+#ifndef SWIG
+            /** Takes ownership of the listener. Hidden from SWIG: the move-only parameter
+                cannot be wrapped without ownership typemaps, and Python never supplies a
+                listener. */
             VariableServerListenThread(std::unique_ptr<TCPClientListener> listener);
+#endif
 
             virtual ~VariableServerListenThread() ;
 
@@ -58,8 +62,11 @@ namespace Trick {
             void pause_listening() ;
             void restart_listening() ;
 
-            /** Takes ownership of the group, replacing any existing one. */
+#ifndef SWIG
+            /** Takes ownership of the group, replacing any existing one. Hidden from SWIG
+                for the same reason as the owning constructor. */
             void set_multicast_group (std::unique_ptr<MulticastGroup> group);
+#endif
 
             virtual void dump( std::ostream & oss = std::cout ) ;
 

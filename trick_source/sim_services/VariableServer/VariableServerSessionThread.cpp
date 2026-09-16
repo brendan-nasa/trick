@@ -18,7 +18,8 @@ Trick::VariableServerSessionThread::VariableServerSessionThread()
  : VariableServerSessionThread (std::unique_ptr<VariableServerSession>(new VariableServerSession())) {}
 
 Trick::VariableServerSessionThread::VariableServerSessionThread(std::unique_ptr<VariableServerSession> session) :
- Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(std::move(session)) {
+ Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(std::move(session)),
+   _saved_pause_cmd(false) {
 
     _connection_status = CONNECTION_PENDING ;
 
@@ -113,6 +114,13 @@ void Trick::VariableServerSessionThread::preload_checkpoint() {
 
 // Gets called from the main thread as a job
 void Trick::VariableServerSessionThread::restart() {
+    // A session that exited has already been deregistered and cleaned up, so there is no
+    // connection to restart and no saved pause state to restore. It can still be reached
+    // from here if it exits between the resume phase enumerating the map and calling in.
+    if (thread_has_exited()) {
+        return;
+    }
+
     // Set the pause state of this thread back to its "pre-checkpoint reload" state.
     _connection->restart();
 
@@ -130,11 +138,14 @@ void Trick::VariableServerSessionThread::restart() {
 void Trick::VariableServerSessionThread::cleanup() {
     // cleanup() runs from exit_var_thread() and again from the destructor, so it has to
     // tolerate being called twice and being called before a connection was ever set.
+    // Destroy the session before the connection it borrows. The base session destructor
+    // does not touch the connection, but an injected subclass's might, and it should not
+    // find a dangling pointer.
+    _session.reset();
+
     if (_connection != nullptr) {
         _connection->disconnect();
         _connection.reset();
     }
-
-    _session.reset();
 }
 

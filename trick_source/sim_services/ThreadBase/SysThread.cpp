@@ -96,15 +96,33 @@ void Trick::SysThread::thread_shutdown() {
 }
 
 void Trick::SysThread::thread_shutdown(void (*exit_handler) (void *), void * exit_arg) {
-    // Publish the terminal state before running the exit handler, so a waiter blocked in
-    // force_thread_to_pause() is released rather than waiting for an acknowledgement that
-    // is never coming. Broadcast because more than one waiter may be parked here.
+    // Run teardown first, then publish. Observing _thread_has_exited has to mean this
+    // thread is already deregistered and cleaned up.
+    //
+    // Publishing first left a window where a checkpoint suspension skipped a session as
+    // "exited" while that session was still in the variable server's maps, so the resume
+    // phase could enumerate it and restart() it with pause state suspension never saved.
+    // The pause wait is outside map_mutex, so ordering teardown first does not reintroduce
+    // the lock inversion that VariableServer_restart.cpp fixed.
+    if (exit_handler != NULL) {
+        exit_handler(exit_arg);
+    }
+
     pthread_mutex_lock(&_restart_pause_mutex);
     _thread_has_exited = true;
     pthread_cond_broadcast(&_thread_has_paused_cv);
     pthread_mutex_unlock(&_restart_pause_mutex);
 
-    Trick::ThreadBase::thread_shutdown(exit_handler, exit_arg);
+    // Call the two-argument base directly. ThreadBase::thread_shutdown() forwards to the
+    // two-argument form through virtual dispatch, which would land back in this override.
+    Trick::ThreadBase::thread_shutdown(NULL, NULL);
+}
+
+bool Trick::SysThread::thread_has_exited() {
+    pthread_mutex_lock(&_restart_pause_mutex);
+    const bool exited = _thread_has_exited;
+    pthread_mutex_unlock(&_restart_pause_mutex);
+    return exited;
 }
 
 // To be called from main thread

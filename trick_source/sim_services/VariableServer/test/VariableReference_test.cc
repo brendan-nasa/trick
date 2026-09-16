@@ -602,12 +602,12 @@ TEST_F(VariableReference_test, units_replaced_while_ascii_write_is_in_flight) {
     writer.join();
 
     // ASSERT
-    // The format must have completed against the conversion it started with: values in
-    // metres, labelled in metres. A torn snapshot would advertise km.
-    EXPECT_NE(buf.written.find("{m}"), std::string::npos)
-        << "expected the label from the conversion in effect when the format started, got: " << buf.written;
-    EXPECT_EQ(buf.written.find("{km}"), std::string::npos)
-        << "format used one conversion but advertised another: " << buf.written;
+    // Every value must have gone through the conversion the format started with, and the
+    // label must describe that same conversion. Asserting the exact numbers matters: a torn
+    // snapshot shows up as later elements silently switching factor (1000,2,3,4 when
+    // elements 2-4 pick up the m->km converter) rather than as a wrong label alone.
+    EXPECT_EQ(buf.written, std::string("1000,2000,3000,4000 {m}"))
+        << "format did not complete against the conversion in effect when it started";
 
     // And a format started after the replacement must see the new conversion.
     ref.stageValue();

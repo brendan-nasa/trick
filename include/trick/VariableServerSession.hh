@@ -103,11 +103,17 @@ namespace Trick {
 
         virtual double get_update_rate() const;
 
+#ifndef SWIG
         /**
          @brief Acquire the copy lock. Hold the returned lock for as long as data copying
           must stay suspended; it releases on scope exit, including on an exception.
+
+         Hidden from SWIG deliberately: the return is move-only, so the generated wrapper
+         would not compile, and a lock whose lifetime controls a C++ critical section has no
+         business becoming a Python-owned proxy.
         */
         std::unique_lock<std::mutex> acquire_copy_lock();
+#endif
 
         virtual VS_WRITE_MODE get_write_mode () const;
         virtual VS_COPY_MODE get_copy_mode () const;

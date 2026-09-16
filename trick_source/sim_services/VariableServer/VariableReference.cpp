@@ -26,11 +26,13 @@ struct Trick::VariableReferenceUnits
 };
 
 // Publish a new conversion. Readers already holding the previous one keep it alive.
-static std::shared_ptr<const Trick::VariableReferenceUnits> make_units(cv_converter* converter,
+// Takes the converter by owning value: the caller's converter is adopted before this
+// allocates, so a throw from the allocation releases it instead of leaking it.
+static std::shared_ptr<const Trick::VariableReferenceUnits> make_units(Trick::CvConverterPtr converter,
                                                                        const std::string& label)
 {
     return std::shared_ptr<const Trick::VariableReferenceUnits>(
-        new Trick::VariableReferenceUnits{Trick::CvConverterPtr(converter), label});
+        new Trick::VariableReferenceUnits{std::move(converter), label});
 }
 
 // Static variables to be addresses that are known to be the error ref address
@@ -121,7 +123,7 @@ Trick::VariableReference::VariableReference(std::string var_name, double* time) 
     _stage_buffer.assign(_size, 0);
     _write_buffer.assign(_size, 0);
 
-    _units = make_units(cv_get_trivial(), "s");
+    _units = make_units(CvConverterPtr(cv_get_trivial()), "s");
     _base_units = _var_info->attr->units;
     _name = _var_info->reference;
 }
@@ -214,7 +216,7 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
     _stage_buffer.assign(_size, 0);
     _write_buffer.assign(_size, 0);
 
-    _units = make_units(cv_get_trivial(), "");
+    _units = make_units(CvConverterPtr(cv_get_trivial()), "");
     _base_units = _var_info->attr->units;
     _name = _var_info->reference;
 
@@ -315,7 +317,7 @@ int Trick::VariableReference::setRequestedUnits(std::string units_name) {
         // formatting -- so freeing the old converter underneath such a reader is a
         // use-after-free. Updating the label separately would also let a packet convert with
         // one factor and advertise another. Readers take a reference to the whole snapshot.
-        std::atomic_store(&_units, make_units(new_conversion_factor, new_units));
+        std::atomic_store(&_units, make_units(CvConverterPtr(new_conversion_factor), new_units));
     }
     return 0;
 }

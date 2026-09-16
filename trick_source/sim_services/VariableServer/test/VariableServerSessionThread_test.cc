@@ -374,11 +374,18 @@ static bool preload_checkpoint_completes(Trick::VariableServerSessionThread * vs
     const bool completed = fut.wait_for(budget) == std::future_status::ready;
     if (completed) {
         worker.join();
-    } else {
-        // Leak the thread deliberately: it is wedged forever, and joining would wedge us.
-        worker.detach();
+        return true;
     }
-    return completed;
+
+    // The worker is wedged in an unbounded wait. Joining would wedge the suite too, but
+    // detaching and returning would let the caller delete the thread object the worker
+    // still holds -- turning a clean failure into a crash or a hang somewhere else.
+    // Abort instead: the regression this guards is precisely an unbounded hang, so failing
+    // loudly here is the honest outcome and leaves the process state intact for a trace.
+    ADD_FAILURE() << "preload_checkpoint() did not return within "
+                  << budget.count() << "s; aborting rather than leaving a wedged thread "
+                  << "referencing an object the test is about to destroy";
+    std::abort();
 }
 
 
@@ -420,7 +427,15 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_pauses_and_restarts_
     EXPECT_CALL(*connection, restart())
         .WillOnce(Return(0));
 
-    set_session_exit_after_some_loops(session);
+    // Keep the session alive until this test says otherwise. Counting loop iterations would
+    // let it exit early under delayed scheduling, so the suspension would silently exercise
+    // the exited path instead of the live one it is meant to cover.
+    std::promise<void> may_exit;
+    auto may_exit_future = may_exit.get_future();
+    EXPECT_CALL(*session, get_exit_cmd())
+        .WillRepeatedly(testing::Invoke([&may_exit_future] {
+            return may_exit_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+        }));
 
     // The live session is suspended and resumed, so it saves and restores its pause state.
     EXPECT_CALL(*session, get_pause())
@@ -438,6 +453,81 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_pauses_and_restarts_
         << "preload_checkpoint() failed to pause a live session";
 
     vst->restart();
+
+    // Only now let the session leave.
+    may_exit.set_value();
+
+    vst->join_thread();
+    delete vst;
+}
+
+
+// Regression for the concurrent window, not just the already-finished case.
+//
+// The session is parked inside handle_message() when suspension asks it to pause, and then
+// leaves instead of acknowledging. The acknowledgement must mean teardown is *complete*:
+// this test holds the session's teardown open (by blocking inside cleanup's disconnect())
+// and asserts that suspension has not returned while it is still in progress. Publishing
+// the terminal state before teardown lets suspension return early, so the resume phase can
+// still find the session registered and restart one that suspension deliberately skipped.
+TEST_F(VariableServerSessionThread_test, preload_checkpoint_waits_for_teardown_when_session_exits) {
+    // ARRANGE
+    EXPECT_CALL(*connection, start()).Times(1).WillOnce(Return(0));
+
+    std::promise<void> parked, may_return;
+    std::promise<void> tearing_down, may_finish_teardown;
+    auto parked_f       = parked.get_future();
+    auto may_return_f   = may_return.get_future();
+    auto tearing_down_f = tearing_down.get_future();
+    auto may_finish_f   = may_finish_teardown.get_future();
+
+    EXPECT_CALL(*session, handle_message())
+        .WillOnce(testing::Invoke([&] {
+            parked.set_value();
+            may_return_f.wait();
+            return -1;                  // client disconnected: the loop breaks and exits
+        }));
+
+    // disconnect() runs inside cleanup(), i.e. inside the exiting thread's teardown.
+    EXPECT_CALL(*connection, disconnect())
+        .WillOnce(testing::Invoke([&] {
+            tearing_down.set_value();
+            may_finish_f.wait();
+            return 0;
+        }));
+
+    Trick::VariableServerSessionThread * vst =
+        new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session)) ;
+    vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
+
+    vst->create_thread();
+    ASSERT_EQ(vst->wait_for_accept(), Trick::ConnectionStatus::CONNECTION_SUCCESS);
+    ASSERT_EQ(parked_f.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+
+    // ACT
+    auto done = std::make_shared<std::promise<void>>();
+    auto suspended = done->get_future();
+    std::thread suspender([vst, done] {
+        vst->preload_checkpoint();
+        done->set_value();
+    });
+
+    may_return.set_value();     // let the session leave instead of acknowledging
+
+    // ASSERT
+    // Teardown is now in flight and deliberately stalled.
+    ASSERT_EQ(tearing_down_f.wait_for(std::chrono::seconds(10)), std::future_status::ready)
+        << "the exiting session never reached teardown";
+
+    EXPECT_EQ(suspended.wait_for(std::chrono::milliseconds(500)), std::future_status::timeout)
+        << "suspension returned while the session was still tearing down; the resume phase "
+           "could still have found it registered and restarted it";
+
+    may_finish_teardown.set_value();
+
+    EXPECT_EQ(suspended.wait_for(std::chrono::seconds(10)), std::future_status::ready)
+        << "suspension did not complete once the session finished tearing down";
+    suspender.join();
 
     vst->join_thread();
     delete vst;

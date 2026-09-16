@@ -45,6 +45,12 @@ namespace Trick {
             virtual void thread_shutdown();
             virtual void thread_shutdown(void (*exit_handler) (void *), void * exit_arg);
 
+            /**
+             @brief True once this thread has finished its teardown and left for good.
+              Deregistration and cleanup are complete before this reads true.
+            */
+            bool thread_has_exited();
+
         protected:
             /**
              @brief Called from the main thread. Blocks until the thread acknowledges the

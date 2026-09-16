@@ -46,8 +46,12 @@ namespace Trick {
              @brief Constructor.
             */
             VariableServerSessionThread() ;
-            /** Takes ownership of the session. */
+#ifndef SWIG
+            /** Takes ownership of the session. Hidden from SWIG: the move-only parameter
+                cannot be wrapped without ownership typemaps, and Python never injects a
+                session. */
             VariableServerSessionThread(std::unique_ptr<VariableServerSession> session) ;
+#endif
             
             virtual ~VariableServerSessionThread() ;
             /**
@@ -58,10 +62,13 @@ namespace Trick {
 
             void set_client_tag(std::string tag);
 
+#ifndef SWIG
             /**
              @brief Give this thread the client connection. The thread owns it from here.
+             Hidden from SWIG for the same reason as the owning constructor.
             */
             void set_connection(std::unique_ptr<ClientConnection> in_connection);
+#endif
 
             /**
              @brief Block until thread has accepted connection
