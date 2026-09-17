@@ -27,7 +27,7 @@ Trick::VariableServerListenThread::VariableServerListenThread(std::unique_ptr<TC
     , _user_requested_address(false)
     , _broadcast(true)
     , _listener(std::move(listener))
-    , _multicast(new MulticastGroup())
+    , _multicast(std::make_unique<MulticastGroup>())
 {
     if (_listener != nullptr)
     {
@@ -40,7 +40,7 @@ Trick::VariableServerListenThread::VariableServerListenThread(std::unique_ptr<TC
     else
     {
         // Otherwise, make one
-        _listener.reset(new TCPClientListener);
+        _listener = std::make_unique<TCPClientListener>();
     }
 
     pendingConnections = 0;
@@ -58,11 +58,7 @@ void Trick::VariableServerListenThread::set_multicast_group(std::unique_ptr<Mult
 }
 
 const char * Trick::VariableServerListenThread::get_hostname() {
-    std::string hostname = _requested_source_address;
-    char * ret = (char *) malloc(hostname.length() + 1);
-    strncpy(ret, hostname.c_str(), hostname.length());
-    ret[hostname.length()] = '\0';
-    return ret;
+    return _requested_source_address.c_str();
 }
 
 unsigned short Trick::VariableServerListenThread::get_port() {
@@ -151,9 +147,9 @@ void * Trick::VariableServerListenThread::thread_body() {
     struct passwd *passp = getpwuid(getuid()) ;
     std::string user_name;
     if ( passp == NULL ) {
-        user_name = strdup("unknown") ;
+        user_name = "unknown" ;
     } else {
-        user_name = strdup(passp->pw_name) ;
+        user_name = passp->pw_name ;
     }
 
     _listener->setBlockMode(true);

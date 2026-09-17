@@ -12,7 +12,7 @@
 int Trick::VariableServer::create_tcp_socket(const char * address, unsigned short in_port ) {
     // Open a VariableServerListenThread to manage this server
 
-    std::unique_ptr<TCPClientListener> listener(new TCPClientListener());
+    auto listener = std::make_unique<TCPClientListener>();
     int status = listener->initialize(address, in_port);
 
     if (status != 0) {
@@ -38,7 +38,7 @@ int Trick::VariableServer::create_udp_socket(const char * address, unsigned shor
     // UDP sockets are created without a listen thread, and represent only 1 session
     // Create a VariableServerSessionThread to manage this session
 
-    std::unique_ptr<UDPConnection> udp_conn(new UDPConnection());
+    auto udp_conn = std::make_unique<UDPConnection>();
     int status = udp_conn->initialize(address, in_port);
     if ( status != 0 ) {
         message_publish(MSG_ERROR, "ERROR: Could not establish UDP port at address %s and port %d for Variable Server.\n", address, in_port);
@@ -69,7 +69,7 @@ int Trick::VariableServer::create_multicast_socket(const char * mcast_address, c
         return -1;
     }
 
-    std::unique_ptr<MulticastGroup> multicast(new MulticastGroup());
+    auto multicast = std::make_unique<MulticastGroup>();
     message_publish(MSG_INFO, "Created UDP variable server %s: %d\n", address, in_port);
 
     int status = multicast->initialize_with_receiving(address, mcast_address, in_port);

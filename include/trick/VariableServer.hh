@@ -15,6 +15,7 @@
 #include "trick/variable_server_sync_types.h"
 
 #include <iostream>
+#include <condition_variable>
 #include <map>
 #include <mutex>
 #include <pthread.h>
@@ -372,6 +373,9 @@ received.
 
     /** Mutex to ensure only one thread manipulates the map of var_server_threads\n */
     std::mutex map_mutex; /**<  trick_io(**) */
+
+    /** Signalled under map_mutex when the last session thread deregisters itself. */
+    std::condition_variable all_sessions_gone; /**<  trick_io(**) */
 
     /** Map of additional listen threads created by create_tcp_socket.\n */
     std::map<pthread_t, VariableServerListenThread*> additional_listen_threads; /**<  trick_io(**) */

@@ -7,6 +7,7 @@
 #define THREADBASE_HH
 
 #include <stdio.h>
+#include <mutex>
 #include <pthread.h>
 #include <iostream>
 #include <string>
@@ -204,8 +205,16 @@ namespace Trick {
 
             /** Manage thread shutdown */
             bool should_shutdown;   /**< trick_io(**) */
+
+            /** Whether cancel_thread() may pthread_cancel this thread.
+             *
+             * Leave this false for any class that takes scoped locks. pthread_cancel does
+             * not reliably unwind C++ destructors (notably on macOS), so cancelling a
+             * thread inside a std::lock_guard region abandons the mutex locked forever.
+             * The variable server threads set this false for that reason.
+             */
             bool cancellable;   /**< trick_io(**) */
-            pthread_mutex_t shutdown_mutex;     /**< trick_io(**) */
+            std::mutex shutdown_mutex;     /**< trick_io(**) */
 
 #if __linux__
 #ifndef SWIG

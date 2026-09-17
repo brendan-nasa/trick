@@ -17,6 +17,8 @@
 #include <unistd.h>
 #include <sched.h>
 #include "trick/ThreadBase.hh"
+#include <condition_variable>
+#include <mutex>
 
 
 namespace Trick {
@@ -68,23 +70,23 @@ namespace Trick {
         
         private: 
             /** Synchronization to safely pause and restart processing during a checkpoint reload */
-            pthread_mutex_t _restart_pause_mutex ;      /**<  trick_io(**) */
+            std::mutex _restart_pause_mutex ;           /**<  trick_io(**) */
 
             // For the main thread to tell the sys_thread to pause
             bool _thread_should_pause;                 /**<  trick_io(**) */
             // For the main thread to tell the sys_thread to wake up
-            pthread_cond_t _thread_wakeup_cv;           /**<  trick_io(**) */
+            std::condition_variable _thread_wakeup_cv;  /**<  trick_io(**) */
 
             // For the main thread to wait for the sys_thread to pause
-            pthread_cond_t _thread_has_paused_cv;       /**<  trick_io(**) */
+            std::condition_variable _thread_has_paused_cv; /**<  trick_io(**) */
             bool _thread_has_paused;                    /**<  trick_io(**) */
 
             // Terminal state. Once set the thread will never acknowledge a pause again.
             bool _thread_has_exited; /**<  trick_io(**) */
 
             // Had to use Construct On First Use here to avoid the static initialziation fiasco
-            static pthread_mutex_t& list_mutex();
-            static pthread_cond_t& list_empty_cv();                 
+            static std::mutex& list_mutex();
+            static std::condition_variable& list_empty_cv();                 
 
             static std::vector <SysThread *>& all_sys_threads();
 

@@ -21,6 +21,13 @@
 // The unit conversion in effect, published as an immutable whole. See VariableReference.hh.
 struct Trick::VariableReferenceUnits
 {
+        // A constructor, not aggregate init: C++17 make_shared uses parenthesised
+        // initialisation, which an aggregate with a move-only member cannot take.
+        VariableReferenceUnits(CvConverterPtr in_converter, std::string in_units)
+            : converter(std::move(in_converter)), requested_units(std::move(in_units))
+        {
+        }
+
         CvConverterPtr converter;
         std::string requested_units;
 };
@@ -31,8 +38,9 @@ struct Trick::VariableReferenceUnits
 static std::shared_ptr<const Trick::VariableReferenceUnits> make_units(Trick::CvConverterPtr converter,
                                                                        const std::string& label)
 {
-    return std::shared_ptr<const Trick::VariableReferenceUnits>(
-        new Trick::VariableReferenceUnits { std::move(converter), label });
+    // make_shared puts the snapshot and its control block in one allocation, so there is
+    // no window in which the snapshot exists but its control block allocation fails.
+    return std::make_shared<const Trick::VariableReferenceUnits>(std::move(converter), label);
 }
 
 // Static variables to be addresses that are known to be the error ref address

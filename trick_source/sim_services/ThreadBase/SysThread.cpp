@@ -16,15 +16,15 @@
 bool Trick::SysThread::shutdown_finished = false;
 
 // Construct On First Use to avoid the Static Initialization Fiasco
-pthread_mutex_t& Trick::SysThread::list_mutex() {
-    static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
+std::mutex& Trick::SysThread::list_mutex() {
+    static std::mutex list_mutex;
     return list_mutex;
-} 
+}
 
-pthread_cond_t& Trick::SysThread::list_empty_cv() {
-    static pthread_cond_t list_empty_cv = PTHREAD_COND_INITIALIZER;
+std::condition_variable& Trick::SysThread::list_empty_cv() {
+    static std::condition_variable list_empty_cv;
     return list_empty_cv;
-} 
+}
 
 std::vector<Trick::SysThread *>& Trick::SysThread::all_sys_threads() {
     static std::vector<SysThread *> all_sys_threads;
@@ -32,29 +32,24 @@ std::vector<Trick::SysThread *>& Trick::SysThread::all_sys_threads() {
 }
 
 Trick::SysThread::SysThread(std::string in_name) : ThreadBase(in_name) {
-    pthread_mutex_init(&_restart_pause_mutex, NULL);
-    pthread_cond_init(&_thread_has_paused_cv, NULL);
-    pthread_cond_init(&_thread_wakeup_cv, NULL);
     _thread_has_paused = true;
     _thread_should_pause = false;
     _thread_has_exited   = false;
 
-    pthread_mutex_lock(&(list_mutex()));
+    std::lock_guard<std::mutex> lock(list_mutex());
     all_sys_threads().push_back(this);
-    pthread_mutex_unlock(&(list_mutex()));
 }
 
 
 Trick::SysThread::~SysThread() {
-    pthread_mutex_lock(&(list_mutex()));
+    std::lock_guard<std::mutex> lock(list_mutex());
     if (!shutdown_finished) {
         all_sys_threads().erase(std::remove(all_sys_threads().begin(), all_sys_threads().end(), this), all_sys_threads().end());
     }
-    pthread_mutex_unlock(&(list_mutex()));
 }
 
 int Trick::SysThread::ensureAllShutdown() {
-    pthread_mutex_lock(&(list_mutex()));
+    std::lock_guard<std::mutex> lock(list_mutex());
 
     // Cancel all threads
     for (SysThread * thread : all_sys_threads()) {
@@ -68,7 +63,6 @@ int Trick::SysThread::ensureAllShutdown() {
 
     // Success!
     shutdown_finished = true;
-    pthread_mutex_unlock(&(list_mutex()));
 
     return 0;
 }
@@ -76,20 +70,15 @@ int Trick::SysThread::ensureAllShutdown() {
 // To be called from main thread
 bool Trick::SysThread::force_thread_to_pause()
 {
-    pthread_mutex_lock(&_restart_pause_mutex);
+    std::unique_lock<std::mutex> lock(_restart_pause_mutex);
     // Tell thread to pause, and wait for it to signal that it has.
     //
     // A thread that has already exited can never call test_pause() again, so it can never
     // acknowledge. Waiting only on _thread_has_paused would hang forever against a session
     // that disconnected, hit an exit command, or failed a write after its last test_pause().
     _thread_should_pause = true;
-    while (!_thread_has_paused && !_thread_has_exited)
-    {
-        pthread_cond_wait(&_thread_has_paused_cv, &_restart_pause_mutex);
-    }
-    bool paused = !_thread_has_exited;
-    pthread_mutex_unlock(&_restart_pause_mutex);
-    return paused;
+    _thread_has_paused_cv.wait(lock, [this] { return _thread_has_paused || _thread_has_exited; });
+    return !_thread_has_exited;
 }
 
 // To be called from the sys_thread as it leaves for good
@@ -110,10 +99,11 @@ void Trick::SysThread::thread_shutdown(void (*exit_handler)(void*), void* exit_a
         exit_handler(exit_arg);
     }
 
-    pthread_mutex_lock(&_restart_pause_mutex);
-    _thread_has_exited = true;
-    pthread_cond_broadcast(&_thread_has_paused_cv);
-    pthread_mutex_unlock(&_restart_pause_mutex);
+    {
+        std::lock_guard<std::mutex> lock(_restart_pause_mutex);
+        _thread_has_exited = true;
+    }
+    _thread_has_paused_cv.notify_all();
 
     // Call the two-argument base directly. ThreadBase::thread_shutdown() forwards to the
     // two-argument form through virtual dispatch, which would land back in this override.
@@ -122,36 +112,32 @@ void Trick::SysThread::thread_shutdown(void (*exit_handler)(void*), void* exit_a
 
 bool Trick::SysThread::thread_has_exited()
 {
-    pthread_mutex_lock(&_restart_pause_mutex);
-    const bool exited = _thread_has_exited;
-    pthread_mutex_unlock(&_restart_pause_mutex);
-    return exited;
+    std::lock_guard<std::mutex> lock(_restart_pause_mutex);
+    return _thread_has_exited;
 }
 
 // To be called from main thread
 void Trick::SysThread::unpause_thread() {
-    pthread_mutex_lock(&_restart_pause_mutex);
-    // Tell thread to wake up
-    _thread_should_pause = false;
-    pthread_cond_signal(&_thread_wakeup_cv);
-    pthread_mutex_unlock(&_restart_pause_mutex);
+    {
+        std::lock_guard<std::mutex> lock(_restart_pause_mutex);
+        // Tell thread to wake up
+        _thread_should_pause = false;
+    }
+    _thread_wakeup_cv.notify_all();
 }
 
 
 // To be called from this thread
 void Trick::SysThread::test_pause() {
-    pthread_mutex_lock(&_restart_pause_mutex) ;
+    std::unique_lock<std::mutex> lock(_restart_pause_mutex) ;
     if (_thread_should_pause) {
         // Tell main thread that we're pausing
         _thread_has_paused = true;
-        pthread_cond_signal(&_thread_has_paused_cv);
-        
+        _thread_has_paused_cv.notify_all();
+
         // Wait until we're told to wake up
-        while (_thread_should_pause) {
-            pthread_cond_wait(&_thread_wakeup_cv, &_restart_pause_mutex);
-        }
+        _thread_wakeup_cv.wait(lock, [this] { return !_thread_should_pause; });
     }
 
     _thread_has_paused = false;
-    pthread_mutex_unlock(&_restart_pause_mutex) ;
 }

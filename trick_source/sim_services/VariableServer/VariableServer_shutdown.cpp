@@ -3,6 +3,7 @@
 #include "trick/message_proto.h"
 #include "trick/message_type.h"
 
+#include <chrono>
 #include <pthread.h>
 #include <unistd.h>
 #include <vector>
@@ -13,8 +14,7 @@ namespace
     // How long to give session threads to finish their current command and exit before
     // giving up on them. Commands are normally sub-millisecond, so this only comes into
     // play when a client command is blocked inside a model call.
-    const unsigned int SESSION_SHUTDOWN_TIMEOUT_USEC = 5'000'000;
-    const unsigned int SESSION_SHUTDOWN_POLL_USEC    = 1000;
+    const std::chrono::seconds SESSION_SHUTDOWN_TIMEOUT{5};
 
 }
 
@@ -55,22 +55,13 @@ int Trick::VariableServer::shutdown() {
     // never returns, so waiting indefinitely (or calling join_thread() straight away)
     // would just relocate the hang from ip.shutdown() into this job, where no
     // later safety net can catch it.
-    unsigned int waited = 0;
-    while (waited < SESSION_SHUTDOWN_TIMEOUT_USEC)
+    // Wait to be told rather than polling: delete_vst() signals once the last session
+    // deregisters, so this returns as soon as they are all gone instead of rounding up to
+    // the next poll tick. The timeout still bounds it.
     {
-        bool all_stopped;
-        {
-            std::lock_guard<std::mutex> lock(map_mutex);
-            all_stopped = var_server_threads.empty();
-        }
-
-        if (all_stopped)
-        {
-            break;
-        }
-
-        usleep(SESSION_SHUTDOWN_POLL_USEC);
-        waited += SESSION_SHUTDOWN_POLL_USEC;
+        std::unique_lock<std::mutex> lock(map_mutex);
+        all_sessions_gone.wait_for(lock, SESSION_SHUTDOWN_TIMEOUT,
+                                   [this] { return var_server_threads.empty(); });
     }
 
     // Reap the threads that stopped and abandon the ones that did not.

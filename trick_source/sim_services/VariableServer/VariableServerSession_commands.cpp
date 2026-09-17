@@ -19,9 +19,9 @@
 
 int Trick::VariableServerSession::var_add(std::string in_name) {
     if (in_name == "time") {
-        add_session_variable(std::unique_ptr<VariableReference>(new VariableReference(in_name, &_time)));
+        add_session_variable(std::make_unique<VariableReference>(in_name, &_time));
     } else {
-        add_session_variable(std::unique_ptr<VariableReference>(new VariableReference(in_name)));
+        add_session_variable(std::make_unique<VariableReference>(in_name));
     }
 
     return(0) ;
@@ -59,9 +59,9 @@ int Trick::VariableServerSession::var_send_once(std::string in_name, int num_var
     std::vector<VariableReference *> given_vars;
     for (auto& varName : var_names) {
         if (varName == "time") {
-            owned_vars.push_back(std::unique_ptr<VariableReference>(new VariableReference(varName, &_time)));
+            owned_vars.push_back(std::make_unique<VariableReference>(varName, &_time));
         } else {
-            owned_vars.push_back(std::unique_ptr<VariableReference>(new VariableReference(varName)));
+            owned_vars.push_back(std::make_unique<VariableReference>(varName));
         }
         given_vars.push_back(owned_vars.back().get());
     }

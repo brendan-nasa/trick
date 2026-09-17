@@ -161,8 +161,15 @@ Trick::VariableServerSession * Trick::VariableServer::get_session(pthread_t thre
 }
 
 void Trick::VariableServer::delete_vst(pthread_t thread_id) {
-    std::lock_guard<std::mutex> lock(map_mutex);
-    var_server_threads.erase(thread_id) ;
+    {
+        std::lock_guard<std::mutex> lock(map_mutex);
+        var_server_threads.erase(thread_id) ;
+        if ( ! var_server_threads.empty() ) {
+            return ;
+        }
+    }
+    // The last session has deregistered; release anyone waiting in shutdown().
+    all_sessions_gone.notify_all() ;
 }
 
 void Trick::VariableServer::delete_session(pthread_t thread_id) {

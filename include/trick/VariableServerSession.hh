@@ -11,6 +11,7 @@ PURPOSE: (Represent the state of a variable server connection.)
 #include "trick/variable_server_message_types.h"
 #include "trick/variable_server_sync_types.h"
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -559,7 +560,9 @@ namespace Trick {
         int _session_log_msg_stream;
 
         /** Toggle to indicate var_pause commanded.\n */
-        bool _pause_cmd ;                 /**<  trick_io(**) */
+        // Atomic: set from the main thread during checkpoint suspend/resume, read from the
+        // simulation thread in the copy_and_write_* paths, with no lock in common.
+        std::atomic<bool> _pause_cmd ;     /**<  trick_io(**) */
 
         /** Save pause state while reloading a checkpoint.\n */
         bool _saved_pause_cmd ;           /**<  trick_io(**) */
@@ -569,7 +572,9 @@ namespace Trick {
         bool _validate_address;
 
         /** Toggle to indicate var_exit commanded.\n */
-        bool _exit_cmd ;                  /**<  trick_io(**) */
+        // Atomic: set from the simulation thread when a write fails, read by the session
+        // thread's own loop.
+        std::atomic<bool> _exit_cmd ;      /**<  trick_io(**) */
 
         int _instance_num;
 

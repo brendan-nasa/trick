@@ -15,7 +15,7 @@ Trick::VariableServer * Trick::VariableServerSessionThread::_vs = NULL ;
 static int instance_num = 0;
 
 Trick::VariableServerSessionThread::VariableServerSessionThread()
-    : VariableServerSessionThread(std::unique_ptr<VariableServerSession>(new VariableServerSession()))
+    : VariableServerSessionThread(std::make_unique<VariableServerSession>())
 {
 }
 

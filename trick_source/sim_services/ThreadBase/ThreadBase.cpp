@@ -25,7 +25,6 @@ Trick::ThreadBase::ThreadBase(std::string in_name) :
  should_shutdown(false),
  cancellable(true)
 {
-    pthread_mutex_init(&shutdown_mutex, NULL);
 #if __linux__
     max_cpu = sysconf( _SC_NPROCESSORS_ONLN ) ;
 #ifdef CPU_ALLOC
@@ -307,9 +306,10 @@ int Trick::ThreadBase::create_thread() {
 }
 
 int Trick::ThreadBase::cancel_thread() {
-    pthread_mutex_lock(&shutdown_mutex);
-    should_shutdown = true;
-    pthread_mutex_unlock(&shutdown_mutex);
+    {
+        std::lock_guard<std::mutex> lock(shutdown_mutex);
+        should_shutdown = true;
+    }
 
     if ( pthread_id != 0 ) {
         if (cancellable)
@@ -320,9 +320,8 @@ int Trick::ThreadBase::cancel_thread() {
 
 int Trick::ThreadBase::request_shutdown()
 {
-    pthread_mutex_lock(&shutdown_mutex);
+    std::lock_guard<std::mutex> lock(shutdown_mutex);
     should_shutdown = true;
-    pthread_mutex_unlock(&shutdown_mutex);
     return (0);
 }
 
@@ -356,13 +355,17 @@ void Trick::ThreadBase::test_shutdown() {
 }
 
 void Trick::ThreadBase::test_shutdown(void (*exit_handler) (void *), void * exit_arg) {
-    pthread_mutex_lock(&shutdown_mutex);
-    if (should_shutdown) {
-        pthread_mutex_unlock(&shutdown_mutex);
+    bool shutting_down;
+    {
+        std::lock_guard<std::mutex> lock(shutdown_mutex);
+        shutting_down = should_shutdown;
+    }
 
+    // Released before the call on purpose: thread_shutdown() runs the exit handler and
+    // never returns, so holding the lock across it would strand it locked for good.
+    if (shutting_down) {
         thread_shutdown(exit_handler, exit_arg);
     }
-    pthread_mutex_unlock(&shutdown_mutex);
 }
 
 
