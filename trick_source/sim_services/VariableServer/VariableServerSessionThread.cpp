@@ -117,32 +117,38 @@ void Trick::VariableServerSessionThread::preload_checkpoint() {
 
 // Gets called from the main thread as a job
 void Trick::VariableServerSessionThread::restart() {
-    // A session that exited has already been deregistered and cleaned up, so there is no
-    // connection to restart and no saved pause state to restore. It can still be reached
-    // from here if it exits between the resume phase enumerating the map and calling in.
-    if (thread_has_exited())
     {
-        return;
-    }
-
-    // Set the pause state of this thread back to its "pre-checkpoint reload" state.
-    _connection->restart();
-
-    {
+        // Held across the whole body so this cannot interleave with cleanup(), which takes
+        // the same lock to release the session and connection. Without that, a session that
+        // began tearing down after the resume snapshot was taken could have its connection
+        // reset out from under the restart below.
         std::lock_guard<std::mutex> lock(_connection_status_mutex);
+
+        // Nothing to resume for a session that is on its way out.
+        if (_connection == nullptr || _session == nullptr)
+        {
+            return;
+        }
+
+        // Set the pause state of this thread back to its "pre-checkpoint reload" state.
+        _connection->restart();
+
         if (_connection_status == CONNECTION_SUCCESS)
         {
             _session->set_pause(_saved_pause_cmd);
         }
     }
 
-    // Restart the variable server processing.
+    // Outside the lock: unpause_thread() takes _restart_pause_mutex, and preload_checkpoint()
+    // acquires these two in the opposite order.
     unpause_thread();
 }
 
 void Trick::VariableServerSessionThread::cleanup() {
-    // cleanup() runs from exit_var_thread() and again from the destructor, so it has to
-    // tolerate being called twice and being called before a connection was ever set.
+    // Same lock as restart(), so teardown and a concurrent checkpoint resume cannot
+    // interleave. cleanup() runs from exit_var_thread() and again from the destructor, so
+    // it has to tolerate being called twice and before a connection was ever set.
+    std::lock_guard<std::mutex> lock(_connection_status_mutex);
     // Destroy the session before the connection it borrows. The base session destructor
     // does not touch the connection, but an injected subclass's might, and it should not
     // find a dangling pointer.

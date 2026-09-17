@@ -175,17 +175,20 @@ void * Trick::VariableServerListenThread::thread_body() {
                 std::lock_guard<std::mutex> lock(connectionMutex);
                 pendingConnections ++;
 
-                VariableServerSessionThread * vst = new Trick::VariableServerSessionThread() ;
-                vst->set_connection(std::unique_ptr<Trick::ClientConnection>(_listener->setUpNewConnection()));
-                vst->copy_cpus(get_cpus()) ;
+                // The variable server owns the session thread from here. It is never
+                // destroyed by itself or by this thread; reap_retired_threads() joins and
+                // destroys it from the main thread once it has finished.
+                auto owned_vst = std::make_unique<Trick::VariableServerSessionThread>() ;
+                owned_vst->set_connection(std::unique_ptr<Trick::ClientConnection>(_listener->setUpNewConnection()));
+                owned_vst->copy_cpus(get_cpus()) ;
+
+                VariableServerSessionThread * vst = the_vs->adopt_vst(std::move(owned_vst)) ;
                 vst->create_thread() ;
                 ConnectionStatus status = vst->wait_for_accept() ;
 
                 if (status == CONNECTION_FAIL) {
-                    // If the connection failed, the thread will exit.
-                    // Make sure it joins fully before deleting the vst object
+                    // The thread has already retired itself; just make sure it is finished.
                     vst->join_thread();
-                    delete vst;
                 }
                 pendingConnections --;
                 if ( pendingConnections == 0 ) {

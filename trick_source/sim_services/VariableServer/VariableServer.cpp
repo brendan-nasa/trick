@@ -5,6 +5,7 @@
 #include "trick/message_proto.h"
 #include "trick/tc_proto.h"
 
+#include <algorithm>
 #include <iostream>
 #include <netdb.h>
 
@@ -21,6 +22,32 @@ Trick::VariableServer::VariableServer()
 }
 
 Trick::VariableServer::~VariableServer() {
+    // Join what we own before destroying it. A thread that has not finished is released
+    // rather than joined: blocking in a destructor would be worse than the leak, and it is
+    // the same bargain abandon_thread() already makes.
+    reap_retired_threads();
+
+    std::vector<std::unique_ptr<VariableServerSessionThread>> remaining;
+    {
+        std::lock_guard<std::mutex> lock(map_mutex);
+        for (auto& entry : var_server_threads) {
+            remaining.push_back(std::move(entry.second));
+        }
+        var_server_threads.clear();
+        std::move(retired_threads.begin(), retired_threads.end(), std::back_inserter(remaining));
+        retired_threads.clear();
+        std::move(pending_threads.begin(), pending_threads.end(), std::back_inserter(remaining));
+        pending_threads.clear();
+    }
+
+    for (auto& thread : remaining) {
+        if (thread->thread_has_exited() && thread->get_pthread_id() != 0) {
+            thread->join_thread();
+        } else if (!thread->thread_has_exited()) {
+            (void) thread.release();
+        }
+    }
+
     the_vs = NULL;
 }
 
@@ -29,14 +56,14 @@ void Trick::VariableServer::shutdownConnections() {
 }
 
 std::ostream& Trick::operator<< (std::ostream& s, Trick::VariableServer& vs) {
-    std::map < pthread_t , VariableServerSessionThread * >::iterator it ;
+    std::map < pthread_t , std::unique_ptr<VariableServerSessionThread> >::iterator it ;
 
     s << "{\"variable_server_connections\":[\n";
     int count = 0;
     int n_connections = (int)vs.var_server_threads.size();
     for ( it = vs.var_server_threads.begin() ; it != vs.var_server_threads.end() ; ++it ) {
         s << "{\n";
-        s << *(*it).second;
+        s << *((*it).second);
         s << "}";
         if ((n_connections-count)>1) {
             s << "," ;
@@ -129,9 +156,50 @@ Trick::VariableServerListenThread & Trick::VariableServer::get_listen_thread() {
     return listen_thread ;
 }
 
+Trick::VariableServerSessionThread * Trick::VariableServer::adopt_vst(
+    std::unique_ptr<VariableServerSessionThread> in_vst) {
+    VariableServerSessionThread * observer = in_vst.get() ;
+    std::lock_guard<std::mutex> lock(map_mutex);
+    pending_threads.push_back(std::move(in_vst)) ;
+    return observer ;
+}
+
 void Trick::VariableServer::add_vst(pthread_t in_thread_id, VariableServerSessionThread * in_vst) {
     std::lock_guard<std::mutex> lock(map_mutex);
-    var_server_threads[in_thread_id] = in_vst ;
+    // Move this thread from the pending list to its keyed entry. Ownership never leaves
+    // the variable server, so registering cannot fail part-way and strand the object.
+    auto pending = std::find_if(pending_threads.begin(), pending_threads.end(),
+                                [in_vst](const std::unique_ptr<VariableServerSessionThread>& candidate) {
+                                    return candidate.get() == in_vst ;
+                                }) ;
+    if (pending != pending_threads.end()) {
+        var_server_threads[in_thread_id] = std::move(*pending) ;
+        pending_threads.erase(pending) ;
+    }
+}
+
+void Trick::VariableServer::reap_retired_threads() {
+    std::vector<std::unique_ptr<VariableServerSessionThread>> reapable ;
+    {
+        std::lock_guard<std::mutex> lock(map_mutex);
+        auto finished = std::partition(retired_threads.begin(), retired_threads.end(),
+                                       [](const std::unique_ptr<VariableServerSessionThread>& thread) {
+                                           return !thread->thread_has_exited() ;
+                                       }) ;
+        std::move(finished, retired_threads.end(), std::back_inserter(reapable)) ;
+        retired_threads.erase(finished, retired_threads.end()) ;
+    }
+
+    // Join outside map_mutex: a thread on its way out takes it in delete_session().
+    for (auto& thread : reapable) {
+        if (thread->get_pthread_id() == 0) {
+            // Abandoned by shutdown() and possibly still running. Destroying it would pull
+            // the ground out from under it, so leak it deliberately.
+            (void) thread.release() ;
+        } else {
+            thread->join_thread() ;
+        }
+    }
 }
 
 void Trick::VariableServer::add_session(pthread_t in_thread_id, VariableServerSession * in_session) {
@@ -140,12 +208,11 @@ void Trick::VariableServer::add_session(pthread_t in_thread_id, VariableServerSe
 }
 
 Trick::VariableServerSessionThread * Trick::VariableServer::get_vst(pthread_t thread_id) {
-    std::map < pthread_t , Trick::VariableServerSessionThread * >::iterator it ;
     Trick::VariableServerSessionThread * ret = NULL ;
     std::lock_guard<std::mutex> lock(map_mutex);
-    it = var_server_threads.find(thread_id) ;
+    auto it = var_server_threads.find(thread_id) ;
     if ( it != var_server_threads.end() ) {
-        ret = (*it).second ;
+        ret = (*it).second.get() ;
     }
     return ret ;
 }
@@ -163,7 +230,13 @@ Trick::VariableServerSession * Trick::VariableServer::get_session(pthread_t thre
 void Trick::VariableServer::delete_vst(pthread_t thread_id) {
     {
         std::lock_guard<std::mutex> lock(map_mutex);
-        var_server_threads.erase(thread_id) ;
+        auto it = var_server_threads.find(thread_id) ;
+        if ( it != var_server_threads.end() ) {
+            // Retire rather than destroy: this runs on the exiting thread itself, which is
+            // still executing inside the object. The main thread reaps it after joining.
+            retired_threads.push_back(std::move(it->second)) ;
+            var_server_threads.erase(it) ;
+        }
         if ( ! var_server_threads.empty() ) {
             return ;
         }

@@ -44,7 +44,7 @@ int Trick::VariableServer::shutdown() {
         for (auto& thread : var_server_threads)
         {
             thread.second->request_shutdown();
-            sessions.push_back(thread.second);
+            sessions.push_back(thread.second.get());
         }
     }
 

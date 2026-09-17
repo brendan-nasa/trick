@@ -126,8 +126,11 @@ TEST_F(VariableServerSessionThread_test, connection_failure) {
     EXPECT_CALL(*connection, start()).Times(1).WillOnce(Return(1));
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
@@ -144,7 +147,6 @@ TEST_F(VariableServerSessionThread_test, connection_failure) {
     EXPECT_EQ(varserver->get_session(id), (Trick::VariableServerSession *) NULL);
 
     // The thread owns the session and the connection, so deleting it releases both.
-    delete vst;
 }
 
 
@@ -160,8 +162,11 @@ TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_handle_message_fails) 
     
         
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
@@ -191,8 +196,11 @@ TEST_F(VariableServerSessionThread_test, DISABLED_exit_if_write_fails) {
 
         
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
@@ -216,8 +224,11 @@ TEST_F(VariableServerSessionThread_test, exit_commanded) {
     set_session_exit_after_some_loops(session);
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
@@ -242,8 +253,11 @@ TEST_F(VariableServerSessionThread_test, thread_cancelled) {
     setup_normal_connection_expectations(connection);
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
     vst->create_thread();
     pthread_t id = vst->get_pthread_id();
@@ -279,8 +293,11 @@ TEST_F(VariableServerSessionThread_test, turn_session_log_on) {
         .Times(1);
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     // ACT
@@ -306,8 +323,11 @@ TEST_F(VariableServerSessionThread_test, throw_trick_executive_exception) {
         .WillRepeatedly(Return(false));
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     EXPECT_CALL(*session, handle_message())
@@ -338,8 +358,11 @@ TEST_F(VariableServerSessionThread_test, throw_exception) {
         .WillRepeatedly(Return(false));
 
     // Set up VariableServerSessionThread
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     EXPECT_CALL(*session, handle_message())
@@ -407,8 +430,11 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_returns_when_session
     // cleared the paused flag.
     EXPECT_CALL(*session, get_exit_cmd()).WillOnce(Return(true));
 
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     vst->create_thread();
@@ -421,7 +447,6 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_returns_when_session
     EXPECT_TRUE(preload_checkpoint_completes(vst, std::chrono::seconds(10)))
         << "preload_checkpoint() waited for a pause acknowledgement from an exited session";
 
-    delete vst;
 }
 
 // The ordinary path must keep working: a live session still pauses and resumes.
@@ -444,12 +469,21 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_pauses_and_restarts_
     // The live session is suspended and resumed, so it saves and restores its pause state.
     EXPECT_CALL(*session, get_pause()).WillRepeatedly(Return(false));
 
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     vst->create_thread();
     ASSERT_EQ(vst->wait_for_accept(), Trick::ConnectionStatus::CONNECTION_SUCCESS);
+
+    // A live session must actually be in the registry under the variable server's
+    // ownership. Without this, the "gone after exit" assertions elsewhere would pass
+    // vacuously for a thread that had never been registered in the first place.
+    ASSERT_EQ(varserver->get_vst(vst->get_pthread_id()), vst)
+        << "session thread was not adopted into the registry";
 
     // ACT / ASSERT
     EXPECT_TRUE(preload_checkpoint_completes(vst, std::chrono::seconds(10)))
@@ -461,7 +495,6 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_pauses_and_restarts_
     may_exit.set_value();
 
     vst->join_thread();
-    delete vst;
 }
 
 // Regression for the concurrent window, not just the already-finished case.
@@ -503,8 +536,11 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_waits_for_teardown_w
                 return 0;
             }));
 
-    Trick::VariableServerSessionThread* vst
-        = new Trick::VariableServerSessionThread(std::unique_ptr<Trick::VariableServerSession>(session));
+    // Adopted by the variable server, exactly as the listen thread does it, so these tests
+    // exercise the real ownership and registration path.
+    Trick::VariableServerSessionThread* vst = varserver->adopt_vst(
+        std::make_unique<Trick::VariableServerSessionThread>(
+            std::unique_ptr<Trick::VariableServerSession>(session)));
     vst->set_connection(std::unique_ptr<Trick::ClientConnection>(connection));
 
     vst->create_thread();
@@ -539,5 +575,4 @@ TEST_F(VariableServerSessionThread_test, preload_checkpoint_waits_for_teardown_w
     suspender.join();
 
     vst->join_thread();
-    delete vst;
 }

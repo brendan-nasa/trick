@@ -17,6 +17,7 @@
 #include <iostream>
 #include <condition_variable>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <pthread.h>
 #include <queue>
@@ -110,10 +111,28 @@ class VariableServer
     */
     int copy_and_write_freeze();
 
+#ifndef SWIG
     /**
-     @brief Adds a vst to the map.
+     @brief Take ownership of a session thread before it is started.
+     @return a non-owning pointer to it, for the caller to start.
+    */
+    VariableServerSessionThread* adopt_vst(std::unique_ptr<VariableServerSessionThread> in_vst);
+#endif
+
+    /**
+     @brief Register an already-adopted session thread under its thread id.
     */
     void add_vst(pthread_t thread_id, VariableServerSessionThread* in_vst);
+
+    /**
+     @brief Join and destroy session threads that have finished.
+
+     Must only be called from the main thread. Session threads are never destroyed by
+     themselves or by each other, so a raw pointer taken from the registry stays valid for
+     any other main-thread operation -- which is what lets checkpoint suspend and resume
+     work on a snapshot without holding map_mutex.
+    */
+    void reap_retired_threads();
 
     /**
      @brief Adds a vst to the map.
@@ -368,7 +387,15 @@ received.
     Trick::JobData* copy_and_write_freeze_job; /**< trick_io(**) trick_units(--) */
 
     /** Map thread id to the VariableServerSessionThread object.\n */
-    std::map<pthread_t, VariableServerSessionThread*> var_server_threads; /**<  trick_io(**) */
+    /** Owns every registered session thread. Entries move to retired_threads when the
+        session leaves; they are destroyed only by reap_retired_threads(). */
+    std::map<pthread_t, std::unique_ptr<VariableServerSessionThread>> var_server_threads; /**<  trick_io(**) */
+
+    /** Adopted but not yet registered under a thread id. */
+    std::vector<std::unique_ptr<VariableServerSessionThread>> pending_threads; /**<  trick_io(**) */
+
+    /** Left their loop, waiting to be joined and destroyed by the main thread. */
+    std::vector<std::unique_ptr<VariableServerSessionThread>> retired_threads; /**<  trick_io(**) */
     std::map<pthread_t, VariableServerSession*> var_server_sessions;      /**<  trick_io(**) */
 
     /** Mutex to ensure only one thread manipulates the map of var_server_threads\n */
@@ -378,7 +405,8 @@ received.
     std::condition_variable all_sessions_gone; /**<  trick_io(**) */
 
     /** Map of additional listen threads created by create_tcp_socket.\n */
-    std::map<pthread_t, VariableServerListenThread*> additional_listen_threads; /**<  trick_io(**) */
+    /** Owns the listen threads created by create_tcp_socket(). */
+    std::map<pthread_t, std::unique_ptr<VariableServerListenThread>> additional_listen_threads; /**<  trick_io(**) */
 
     /** List of IPs to accept connections from.\n */
     std::set<std::string> ip_allowlist;

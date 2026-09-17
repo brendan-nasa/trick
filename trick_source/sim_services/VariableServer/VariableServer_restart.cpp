@@ -46,7 +46,7 @@ int Trick::VariableServer::suspendPreCheckpointReload() {
         std::lock_guard<std::mutex> lock(map_mutex);
         for (const auto& vst_it : var_server_threads)
         {
-            sessions.push_back(vst_it.second);
+            sessions.push_back(vst_it.second.get());
         }
     }
 
@@ -60,15 +60,25 @@ int Trick::VariableServer::suspendPreCheckpointReload() {
 
 // Resume variable server processing after reloading a MemoryManager (ASCII) checkpoint.
 int Trick::VariableServer::resumePostCheckpointReload() {
-    std::map<pthread_t, VariableServerSessionThread*>::iterator pos ;
 
-    // Resume all session threads
+    // Resume all session threads.
+    //
+    // Snapshot under the lock and restart outside it, mirroring the suspend path. Holding
+    // map_mutex across restart() made the thread_has_exited() guard inside it useless: an
+    // exiting session blocks in delete_session() waiting for this very lock, so it could
+    // never reach the state that makes the guard fire. Raw pointers are safe here because
+    // session threads are destroyed only by reap_retired_threads(), on this same thread.
+    std::vector<VariableServerSessionThread*> sessions;
     {
         std::lock_guard<std::mutex> lock(map_mutex);
         for (const auto& vst_it : var_server_threads)
         {
-            vst_it.second->restart();
+            sessions.push_back(vst_it.second.get()) ;
         }
+    }
+
+    for (auto* vst : sessions) {
+        vst->restart() ;
     }
 
     // Restart listening on all listening threads
