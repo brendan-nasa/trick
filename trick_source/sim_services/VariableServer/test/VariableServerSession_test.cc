@@ -8,7 +8,12 @@ PURPOSE:                     ( Tests for the VariableServerSession class )
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <vector>
+
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "trick/MemoryManager.hh"
 #include "trick/UdUnits.hh"
@@ -1394,4 +1399,403 @@ TEST_F(VariableServerSession_test, copy_and_write_freeze_scheduled_write_fails) 
 
     // ASSERT
     EXPECT_EQ(result, -1);
+}
+
+// Golden tests for the messages a session writes to its connection. These pin the exact bytes
+// clients receive today so the message builders can be rewritten without iostreams and stay
+// byte-identical. Binary expectations are built in host byte order.
+
+namespace {
+void appendInt(std::string& out, int value, bool byteswap = false) {
+    unsigned int bits = static_cast<unsigned int>(value);
+    if (byteswap) {
+        bits = __builtin_bswap32(bits);
+    }
+    char bytes[sizeof(bits)];
+    memcpy(bytes, &bits, sizeof(bits));
+    out.append(bytes, sizeof(bits));
+}
+
+std::vector<Trick::VariableReference *> stagedRefs(std::vector<std::unique_ptr<Trick::VariableReference>>& owned) {
+    std::vector<Trick::VariableReference *> refs;
+    for (auto& ref : owned) {
+        ref->stageValue();
+        refs.push_back(ref.get());
+    }
+    return refs;
+}
+}
+
+class VariableServerSession_golden_test : public VariableServerSession_test {
+    protected:
+        std::vector<std::string> string_writes;
+        std::vector<std::string> buffer_writes;
+
+        void captureWrites() {
+            EXPECT_CALL(connection, write(_))
+                .WillRepeatedly(Invoke([this](const std::string& message) {
+                    string_writes.push_back(message);
+                    return static_cast<int>(message.size());
+                }));
+            EXPECT_CALL(connection, write(_, _))
+                .WillRepeatedly(Invoke([this](char * message, int size) {
+                    buffer_writes.push_back(std::string(message, size));
+                    return size;
+                }));
+        }
+};
+
+TEST_F(VariableServerSession_golden_test, write_data_ascii) {
+    int vs_int = 5;
+    double vs_double = 867.309;
+    std::string vs_string = "a b";
+    (void) memmgr.declare_extern_var(&vs_int, "int vs_int");
+    (void) memmgr.declare_extern_var(&vs_double, "double vs_double");
+    (void) memmgr.declare_extern_var(&vs_string, "std::string vs_string");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("vs_int"));
+    owned.push_back(std::make_unique<Trick::VariableReference>("vs_double"));
+    owned.push_back(std::make_unique<Trick::VariableReference>("vs_string"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+
+    EXPECT_EQ(session.write_data(refs, VS_VAR_LIST), 16);
+    for (auto& ref : owned) {
+        ref->stageValue();
+    }
+    EXPECT_EQ(session.write_data(refs, VS_SEND_ONCE), 16);
+
+    EXPECT_EQ(string_writes, std::vector<std::string>({"0\t5\t867.309\ta b\n", "5\t5\t867.309\ta b\n"}));
+    EXPECT_TRUE(buffer_writes.empty());
+}
+
+TEST_F(VariableServerSession_golden_test, write_data_ascii_split_across_messages) {
+    std::string first(3000, 'a');
+    std::string second(3000, 'b');
+    std::string third(3000, 'c');
+    (void) memmgr.declare_extern_var(&first, "std::string first");
+    (void) memmgr.declare_extern_var(&second, "std::string second");
+    (void) memmgr.declare_extern_var(&third, "std::string third");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("first"));
+    owned.push_back(std::make_unique<Trick::VariableReference>("second"));
+    owned.push_back(std::make_unique<Trick::VariableReference>("third"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+
+    session.write_data(refs, VS_VAR_LIST);
+
+    // The first message keeps the separating tab and has no newline; the next one starts
+    // directly with the value that did not fit.
+    ASSERT_EQ(string_writes.size(), 2u);
+    EXPECT_EQ(string_writes[0], "0\t" + first + "\t" + second + "\t");
+    EXPECT_EQ(string_writes[1], third + "\n");
+}
+
+TEST_F(VariableServerSession_golden_test, write_data_ascii_truncates_oversized_value) {
+    int big_arr[1500];
+    for (int& value : big_arr) {
+        value = 1000000;
+    }
+    (void) memmgr.declare_extern_var(&big_arr, "int big_arr[1500]");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("big_arr"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    std::string full_text;
+    for (int ii = 0; ii < 1500; ii++) {
+        full_text += (ii == 0) ? "1000000" : ",1000000";
+    }
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+    EXPECT_CALL(message_publisher, publish(MSG_WARNING, ::testing::HasSubstr("TRUNCATED")));
+
+    session.write_data(refs, VS_VAR_LIST);
+
+    // The value is cut to 8190 characters, which no longer fits after the header, so the header
+    // goes out alone first.
+    ASSERT_EQ(string_writes.size(), 2u);
+    EXPECT_EQ(string_writes[0], "0\t");
+    EXPECT_EQ(string_writes[1], full_text.substr(0, 8190) + "\n");
+}
+
+// Known bug: string values are staged into fixed MAX_ARRAY_LENGTH (4096) byte buffers, but
+// stageValue() copies strlen() + 1 bytes without a bound, overflowing the heap for longer
+// strings. Enable once staging is bounded; update the expectation if the fix truncates instead.
+TEST_F(VariableServerSession_golden_test, DISABLED_write_data_ascii_long_string) {
+    std::string long_string(5000, 'a');
+    (void) memmgr.declare_extern_var(&long_string, "std::string long_string");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("long_string"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+
+    session.write_data(refs, VS_VAR_LIST);
+
+    EXPECT_EQ(string_writes, std::vector<std::string>({"0\t" + long_string + "\n"}));
+}
+
+TEST_F(VariableServerSession_golden_test, write_data_binary) {
+    int vs_a = 5;
+    (void) memmgr.declare_extern_var(&vs_a, "int vs_a");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("vs_a"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    session.var_binary();
+    captureWrites();
+
+    session.write_data(refs, VS_VAR_LIST);
+
+    // <type><size of rest of message><num vars> then <name len><name><type><size><value>
+    std::string expected;
+    appendInt(expected, VS_VAR_LIST);
+    appendInt(expected, 28);
+    appendInt(expected, 1);
+    appendInt(expected, 4);
+    expected += "vs_a";
+    appendInt(expected, TRICK_INTEGER);
+    appendInt(expected, 4);
+    appendInt(expected, 5);
+    EXPECT_EQ(buffer_writes, std::vector<std::string>({expected}));
+    EXPECT_TRUE(string_writes.empty());
+}
+
+TEST_F(VariableServerSession_golden_test, write_data_binary_nonames) {
+    int vs_a = 5;
+    (void) memmgr.declare_extern_var(&vs_a, "int vs_a");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("vs_a"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    session.var_binary_nonames();
+    captureWrites();
+
+    session.write_data(refs, VS_SEND_ONCE);
+
+    std::string expected;
+    appendInt(expected, VS_SEND_ONCE);
+    appendInt(expected, 20);
+    appendInt(expected, 1);
+    appendInt(expected, TRICK_INTEGER);
+    appendInt(expected, 4);
+    appendInt(expected, 5);
+    EXPECT_EQ(buffer_writes, std::vector<std::string>({expected}));
+}
+
+TEST_F(VariableServerSession_golden_test, write_data_binary_byteswap) {
+    int vs_a = 5;
+    (void) memmgr.declare_extern_var(&vs_a, "int vs_a");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("vs_a"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    session.var_binary();
+    session.var_byteswap(true);
+    captureWrites();
+
+    session.write_data(refs, VS_VAR_LIST);
+
+    std::string expected;
+    appendInt(expected, VS_VAR_LIST, true);
+    appendInt(expected, 28, true);
+    appendInt(expected, 1, true);
+    appendInt(expected, 4, true);
+    expected += "vs_a";
+    appendInt(expected, TRICK_INTEGER, true);
+    appendInt(expected, 4, true);
+    appendInt(expected, 5, true);
+    EXPECT_EQ(buffer_writes, std::vector<std::string>({expected}));
+}
+
+TEST_F(VariableServerSession_golden_test, write_data_binary_skips_oversized_value) {
+    char huge[9000] = "";
+    int vs_a = 5;
+    (void) memmgr.declare_extern_var(&huge, "char huge[9000]");
+    (void) memmgr.declare_extern_var(&vs_a, "int vs_a");
+    std::vector<std::unique_ptr<Trick::VariableReference>> owned;
+    owned.push_back(std::make_unique<Trick::VariableReference>("huge"));
+    owned.push_back(std::make_unique<Trick::VariableReference>("vs_a"));
+    std::vector<Trick::VariableReference *> refs = stagedRefs(owned);
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    session.var_binary();
+    captureWrites();
+    EXPECT_CALL(message_publisher, publish(MSG_WARNING, ::testing::HasSubstr("SKIPPING IT")));
+
+    session.write_data(refs, VS_VAR_LIST);
+
+    std::string expected;
+    appendInt(expected, VS_VAR_LIST);
+    appendInt(expected, 28);
+    appendInt(expected, 1);
+    appendInt(expected, 4);
+    expected += "vs_a";
+    appendInt(expected, TRICK_INTEGER);
+    appendInt(expected, 4);
+    appendInt(expected, 5);
+    EXPECT_EQ(buffer_writes, std::vector<std::string>({expected}));
+}
+
+TEST_F(VariableServerSession_golden_test, var_exists) {
+    int vs_a = 5;
+    (void) memmgr.declare_extern_var(&vs_a, "int vs_a");
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+
+    session.var_exists("vs_a");
+    session.var_exists("no_such_var");
+    session.var_binary();
+    session.var_exists("vs_a");
+    session.var_exists("no_such_var");
+
+    EXPECT_EQ(string_writes, std::vector<std::string>({"1\t1\n", "1\t0\n"}));
+    std::string found;
+    appendInt(found, VS_VAR_EXISTS);
+    found += '\x01';
+    std::string missing;
+    appendInt(missing, VS_VAR_EXISTS);
+    missing += '\x00';
+    EXPECT_EQ(buffer_writes, std::vector<std::string>({found, missing}));
+}
+
+TEST_F(VariableServerSession_golden_test, send_list_size) {
+    int vs_a = 5;
+    int vs_b = 6;
+    (void) memmgr.declare_extern_var(&vs_a, "int vs_a");
+    (void) memmgr.declare_extern_var(&vs_b, "int vs_b");
+
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    session.var_add("vs_a");
+    session.var_add("vs_b");
+    captureWrites();
+
+    session.send_list_size();
+    session.var_binary();
+    session.send_list_size();
+
+    EXPECT_EQ(string_writes, std::vector<std::string>({"3\t2\n"}));
+    std::string expected;
+    appendInt(expected, VS_LIST_SIZE);
+    appendInt(expected, 0);
+    appendInt(expected, 2);
+    EXPECT_EQ(buffer_writes, std::vector<std::string>({expected}));
+}
+
+TEST_F(VariableServerSession_golden_test, write_stdio) {
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+
+    session.write_stdio(1, "hello");
+    session.write_stdio(2, "");
+
+    EXPECT_EQ(string_writes, std::vector<std::string>({"4 1 5\nhello", "4 2 0\n"}));
+}
+
+class VariableServerSession_send_file_test : public VariableServerSession_golden_test {
+    protected:
+        std::string path;
+
+        void writeFile(const std::string& contents) {
+            char path_template[] = "/tmp/vs_send_file_XXXXXX";
+            int fd = mkstemp(path_template);
+            ASSERT_NE(fd, -1);
+            ASSERT_EQ(write(fd, contents.data(), contents.size()), static_cast<ssize_t>(contents.size()));
+            close(fd);
+            path = path_template;
+        }
+
+        void TearDown() override {
+            if (!path.empty()) {
+                unlink(path.c_str());
+            }
+        }
+};
+
+TEST_F(VariableServerSession_send_file_test, text_file) {
+    writeFile("hello");
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+    EXPECT_CALL(connection, setBlockMode(true)).WillOnce(Return(0));
+    EXPECT_CALL(connection, setBlockMode(false)).WillOnce(Return(0));
+
+    EXPECT_EQ(session.send_file(path), 0);
+
+    EXPECT_EQ(string_writes, std::vector<std::string>({"2\t5\n", "hello"}));
+}
+
+TEST_F(VariableServerSession_send_file_test, missing_file) {
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+    EXPECT_CALL(message_publisher, publish(MSG_ERROR, ::testing::HasSubstr("Cannot open")));
+
+    EXPECT_EQ(session.send_file("/tmp/vs_send_file_does_not_exist"), -1);
+
+    EXPECT_EQ(string_writes, std::vector<std::string>({"2\t-1\n"}));
+}
+
+// Known bug: each packet is built with std::string(buffer), which stops at the first NUL byte
+// (and reads past the unterminated buffer when there is none), so binary files are corrupted.
+// Enable once transmit_file sends exactly the bytes it read.
+TEST_F(VariableServerSession_send_file_test, DISABLED_file_with_nul_bytes) {
+    const std::string contents("ab\0cd", 5);
+    writeFile(contents);
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+    EXPECT_CALL(connection, setBlockMode(_)).WillRepeatedly(Return(0));
+
+    EXPECT_EQ(session.send_file(path), 0);
+
+    std::string sent;
+    for (size_t ii = 1; ii < string_writes.size(); ii++) {
+        sent += string_writes[ii];
+    }
+    for (const auto& chunk : buffer_writes) {
+        sent += chunk;
+    }
+    EXPECT_EQ(sent, contents);
+}
+
+// Known bug: transmit_file never closes the FILE it opens, leaking a descriptor per request.
+// Enable once the file is closed on every path.
+TEST_F(VariableServerSession_send_file_test, DISABLED_does_not_leak_descriptor) {
+    writeFile("hello");
+    Trick::VariableServerSession session;
+    session.set_connection(&connection);
+    captureWrites();
+    EXPECT_CALL(connection, setBlockMode(_)).WillRepeatedly(Return(0));
+
+    // The lowest free descriptor before and after the transfer should be the same.
+    int before = dup(0);
+    close(before);
+    session.send_file(path);
+    int after = dup(0);
+    close(after);
+
+    EXPECT_EQ(after, before);
 }
