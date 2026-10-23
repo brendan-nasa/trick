@@ -3,3 +3,4 @@ lcov_html/*
 *_test
 *.info
 sanitize_*/
+*.d

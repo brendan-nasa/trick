@@ -65,6 +65,11 @@ TESTS = $(VARIABLE_REFERENCE_TESTS) $(VARIABLE_SESSION_TESTS) VariableServerSess
 
 TEST_OBJS = $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(TESTS)))
 
+# Relink the tests when a Trick library they link against changes. The archives are
+# prerequisites only; the link recipes filter them out of $^ and link them with -l as before.
+TRICK_LIB_FILES = $(wildcard $(addprefix $(TRICK_LIB_DIR)/lib, $(addsuffix .a, $(TRICK_LIB_NAMES))))
+$(TESTS): $(TRICK_LIB_FILES)
+
 TO_ICG = VariableReference_test
 
 ICG_OBJS = $(addprefix $(OBJ_DIR)/io_, $(addsuffix .o, $(TO_ICG)))
@@ -117,19 +122,19 @@ $(ICG_OBJS): $(OBJ_DIR)/io_%.o : %.hh $(OBJ_DIR)
 	$(TRICK_CXX) $(TRICK_CXXFLAGS) -MMD -MP -c io_src/io_$*.cpp -o $@ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
 
 $(VARIABLE_REFERENCE_TESTS): %: $(OBJ_DIR)/%.o $(OBJ_DIR)/io_VariableReference_test.o
-	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $^ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
+	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $(filter-out %.a,$^) -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
 
 $(VARIABLE_SESSION_TESTS): %: $(OBJ_DIR)/%.o
-	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) $^ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS) -o $@
+	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) $(filter-out %.a,$^) -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS) -o $@
 
 VariableServerSessionThread_test: %: $(OBJ_DIR)/%.o
-	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $^ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
+	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $(filter-out %.a,$^) -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
 
 VariableServerListenThread_test: %: $(OBJ_DIR)/%.o
-	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $^ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
+	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $(filter-out %.a,$^) -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
 
 VariableServer_test: %: $(OBJ_DIR)/%.o
-	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $^ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
+	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $(filter-out %.a,$^) -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
 
 
 code-coverage: test
