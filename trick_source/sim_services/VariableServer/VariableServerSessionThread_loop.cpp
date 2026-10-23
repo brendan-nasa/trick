@@ -20,7 +20,7 @@ void exit_var_thread(void *in_vst) ;
 void * Trick::VariableServerSessionThread::thread_body() {
 
     // Check for short running sims
-    test_shutdown(NULL, NULL);
+    test_shutdown(nullptr, nullptr);
 
     //  We need to make the thread to VariableServerSessionThread map before we accept the connection.
     //  Otherwise we have a race where this thread is unknown to the variable server and the

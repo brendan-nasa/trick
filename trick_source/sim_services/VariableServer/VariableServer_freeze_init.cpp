@@ -22,7 +22,7 @@ int Trick::VariableServer::freeze_init() {
     pthread_mutex_unlock(&map_mutex) ;
 
     //reschedule the current job. TODO: a call needs to be created to do this the OO way
-    if ( copy_and_write_freeze_job != NULL ) {
+    if ( copy_and_write_freeze_job != nullptr ) {
         copy_and_write_freeze_job->next_tics = next_call_tics ;
     }
 

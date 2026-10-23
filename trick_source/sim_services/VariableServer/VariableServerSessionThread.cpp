@@ -10,20 +10,20 @@
 #include "trick/TCPConnection.hh"
 
 
-Trick::VariableServer * Trick::VariableServerSessionThread::_vs = NULL ;
+Trick::VariableServer * Trick::VariableServerSessionThread::_vs = nullptr ;
 
 static int instance_num = 0;
 
 Trick::VariableServerSessionThread::VariableServerSessionThread() : VariableServerSessionThread (new VariableServerSession()) {}
 
 Trick::VariableServerSessionThread::VariableServerSessionThread(VariableServerSession * session) :
- Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(session), _connection(NULL) {
+ Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(session), _connection(nullptr) {
 
     _connection_status = CONNECTION_PENDING ;
 
 
-    pthread_mutex_init(&_connection_status_mutex, NULL);
-    pthread_cond_init(&_connection_status_cv, NULL);
+    pthread_mutex_init(&_connection_status_mutex, nullptr);
+    pthread_cond_init(&_connection_status_cv, nullptr);
 
     cancellable = false;
 }
@@ -126,9 +126,9 @@ void Trick::VariableServerSessionThread::restart() {
 void Trick::VariableServerSessionThread::cleanup() {
     _connection->disconnect();
 
-    if (_session != NULL) {
+    if (_session != nullptr) {
         delete _session;
-        _session = NULL;
+        _session = nullptr;
     }
 }
 

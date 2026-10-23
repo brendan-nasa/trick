@@ -90,7 +90,7 @@ int Trick::VariableServerSession::var_remove(std::string in_name) {
 int Trick::VariableServerSession::var_units(std::string var_name, std::string units_name) {    
     VariableReference * variable = find_session_variable(var_name);
 
-    if (variable == NULL) {
+    if (variable == nullptr) {
         // TODO: ERROR LOGGER HERE
         return -1;
     }
@@ -106,7 +106,7 @@ int Trick::VariableServerSession::var_get_stl_size(std::string in_name)
 
     REF2 *ref = ref_attributes(in_name.c_str());
 
-    if (ref == NULL)
+    if (ref == nullptr)
     {
         error = true;
     }
@@ -114,11 +114,11 @@ int Trick::VariableServerSession::var_get_stl_size(std::string in_name)
     {
         // Check if this is an STL container with a get_stl_size function
         ATTRIBUTES *attr = ref->attr;
-        if (attr == NULL)
+        if (attr == nullptr)
         {
             error = true;
         }
-        else if (attr->get_stl_size == NULL)
+        else if (attr->get_stl_size == nullptr)
         {
             error = true;
         }
@@ -179,7 +179,7 @@ int Trick::VariableServerSession::var_exists(std::string in_name) {
     unsigned int msg_type ;
     REF2* var_ref = ref_attributes(in_name.c_str());
 
-    if ( var_ref == (REF2*)NULL ) {
+    if ( var_ref == (REF2*)nullptr ) {
         error = true;
     }
 
@@ -399,7 +399,7 @@ int Trick::VariableServerSession::transmit_file(std::string filename) {
         message_publish(MSG_DEBUG,"%p tag=<%s> var_server opening %s.\n", _connection, _connection->getClientTag().c_str(), filename.c_str()) ;
     }
 
-    if ((fp = fopen(filename.c_str() , "r")) == NULL ) {
+    if ((fp = fopen(filename.c_str() , "r")) == nullptr ) {
         message_publish(MSG_ERROR,"Variable Server Error: Cannot open %s.\n", filename.c_str()) ;
         sprintf(buffer, "%d\t-1\n", VS_SIE_RESOURCE) ;
         std::string message(buffer);

@@ -20,7 +20,7 @@ int Trick::VariableServer::copy_and_write_scheduled() {
     pthread_mutex_unlock(&map_mutex) ;
 
     //reschedule the current job. TODO: a call needs to be created to do this the OO way
-    if ( copy_data_job != NULL ) {
+    if ( copy_data_job != nullptr ) {
         copy_data_job->next_tics = next_call_tics ;
     }
 

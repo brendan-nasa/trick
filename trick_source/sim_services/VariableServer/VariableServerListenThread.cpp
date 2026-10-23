@@ -15,7 +15,7 @@
 
 extern Trick::VariableServer* the_vs;
 
-Trick::VariableServerListenThread::VariableServerListenThread() : VariableServerListenThread (NULL) {}
+Trick::VariableServerListenThread::VariableServerListenThread() : VariableServerListenThread (nullptr) {}
 
 Trick::VariableServerListenThread::VariableServerListenThread(TCPClientListener * listener) :
  Trick::SysThread("VarServListen"),
@@ -26,7 +26,7 @@ Trick::VariableServerListenThread::VariableServerListenThread(TCPClientListener 
  _listener(listener),
  _multicast(new MulticastGroup())
 {
-    if (_listener != NULL) {
+    if (_listener != nullptr) {
         // If we were passed a listener
         // We assume it is already initialized
         _requested_source_address = _listener->getHostname();
@@ -38,8 +38,8 @@ Trick::VariableServerListenThread::VariableServerListenThread(TCPClientListener 
     }
 
     pendingConnections = 0;
-    pthread_mutex_init( &connectionMutex, NULL);
-    pthread_cond_init( &noPendingConnections_cv, NULL);
+    pthread_mutex_init( &connectionMutex, nullptr);
+    pthread_cond_init( &noPendingConnections_cv, nullptr);
 
     cancellable = false;
 }
@@ -84,7 +84,7 @@ void Trick::VariableServerListenThread::set_user_tag(std::string in_tag) {
 }
 
 void Trick::VariableServerListenThread::set_source_address(const char * address) {
-    if ( address == NULL ) {
+    if ( address == nullptr ) {
         _requested_source_address = std::string("") ;
     } else {
         _requested_source_address = std::string(address) ;
@@ -147,7 +147,7 @@ void * Trick::VariableServerListenThread::thread_body() {
     // get username to _broadcast on multicast channel
     struct passwd *passp = getpwuid(getuid()) ;
     std::string user_name;
-    if ( passp == NULL ) {
+    if ( passp == nullptr ) {
         user_name = strdup("unknown") ;
     } else {
         user_name = strdup(passp->pw_name) ;
@@ -202,7 +202,7 @@ void * Trick::VariableServerListenThread::thread_body() {
                 // and gives the client a prompt disconnect instead of leaving it to hang. No
                 // commands are ever read or executed on the rejected connection.
                 Trick::TCPConnection* rejected = _listener->setUpNewConnection();
-                if (rejected != NULL)
+                if (rejected != nullptr)
                 {
                     rejected->start();
                     rejected->disconnect();
@@ -228,7 +228,7 @@ void * Trick::VariableServerListenThread::thread_body() {
         }
     }
 
-    return NULL ;
+    return nullptr ;
 }
 
 void Trick::VariableServerListenThread::shutdownConnections() {

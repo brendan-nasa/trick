@@ -19,11 +19,11 @@ Trick::VariableServer::VariableServer()
     , bypass_ip_check(false)
 {
     the_vs = this ;
-    pthread_mutex_init(&map_mutex, NULL);
+    pthread_mutex_init(&map_mutex, nullptr);
 }
 
 Trick::VariableServer::~VariableServer() {
-    the_vs = NULL;
+    the_vs = nullptr;
 }
 
 void Trick::VariableServer::shutdownConnections() {
@@ -145,7 +145,7 @@ void Trick::VariableServer::add_session(pthread_t in_thread_id, VariableServerSe
 
 Trick::VariableServerSessionThread * Trick::VariableServer::get_vst(pthread_t thread_id) {
     std::map < pthread_t , Trick::VariableServerSessionThread * >::iterator it ;
-    Trick::VariableServerSessionThread * ret = NULL ;
+    Trick::VariableServerSessionThread * ret = nullptr ;
     pthread_mutex_lock(&map_mutex) ;
     it = var_server_threads.find(thread_id) ;
     if ( it != var_server_threads.end() ) {
@@ -156,7 +156,7 @@ Trick::VariableServerSessionThread * Trick::VariableServer::get_vst(pthread_t th
 }
 
 Trick::VariableServerSession * Trick::VariableServer::get_session(pthread_t thread_id) {
-    Trick::VariableServerSession * ret = NULL ;
+    Trick::VariableServerSession * ret = nullptr ;
     pthread_mutex_lock(&map_mutex) ;
     auto it = var_server_sessions.find(thread_id) ;
     if ( it != var_server_sessions.end() ) {

@@ -99,7 +99,7 @@ int Trick::VariableServer::create_multicast_socket(const char * mcast_address, c
     // Multicast sockets are created without a listen thread, and represent only 1 session
     // Create a VariableServerSessionThread to manage this session
 
-    if (mcast_address == NULL || mcast_address[0] == '\0') {
+    if (mcast_address == nullptr || mcast_address[0] == '\0') {
         message_publish(MSG_ERROR, "Multicast address must be defined.\n");
         return -1;
     }

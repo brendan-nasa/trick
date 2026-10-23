@@ -26,7 +26,7 @@ REF2* Trick::VariableReference::make_error_ref(std::string in_name) {
     REF2* new_ref;
     new_ref = (REF2*)calloc(1, sizeof(REF2));
     new_ref->reference = strdup(in_name.c_str()) ;
-    new_ref->units = NULL ;
+    new_ref->units = nullptr ;
     new_ref->address = (char *)&_bad_ref_int ;
     new_ref->attr = (ATTRIBUTES*)calloc(1, sizeof(ATTRIBUTES)) ;
     new_ref->attr->type = TRICK_NUMBER_OF_TYPES ;
@@ -39,7 +39,7 @@ REF2* Trick::VariableReference::make_do_not_resolve_ref(std::string in_name) {
     REF2* new_ref;
     new_ref = (REF2*)calloc(1, sizeof(REF2));
     new_ref->reference = strdup(in_name.c_str()) ;
-    new_ref->units = NULL ;
+    new_ref->units = nullptr ;
     new_ref->address = (char *)&_do_not_resolve_bad_ref_int ;
     new_ref->attr = (ATTRIBUTES*)calloc(1, sizeof(ATTRIBUTES)) ;
     new_ref->attr->type = TRICK_NUMBER_OF_TYPES ;
@@ -97,7 +97,7 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
     }
 
     // Handle error cases
-    if ( _var_info == NULL ) {
+    if ( _var_info == nullptr ) {
         // TODO: ERROR LOGGER sendErrorMessage("Variable Server could not find variable %s.\n", var_name);
         // PRINTF IS NOT AN ERROR LOGGER @me
         message_publish(MSG_ERROR, "Variable Server could not find variable %s.\n", var_name.c_str());
@@ -119,7 +119,7 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
     }
 
     // Set up member variables
-    _var_info->units = NULL;
+    _var_info->units = nullptr;
     _address = _var_info->address;
     _size = _var_info->attr->size ;
     _deref = false;
@@ -184,19 +184,19 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
 }
 
 Trick::VariableReference::~VariableReference() {
-    if (_var_info != NULL) {
+    if (_var_info != nullptr) {
         free( _var_info );
-        _var_info = NULL;
+        _var_info = nullptr;
     }
-    if (_stage_buffer != NULL) {
+    if (_stage_buffer != nullptr) {
         free (_stage_buffer);
-        _stage_buffer = NULL;
+        _stage_buffer = nullptr;
     }
-    if (_write_buffer != NULL) {
+    if (_write_buffer != nullptr) {
         free (_write_buffer);
-        _write_buffer = NULL;
+        _write_buffer = nullptr;
     }
-    if (_conversion_factor != NULL) {
+    if (_conversion_factor != nullptr) {
         cv_free(_conversion_factor);
     }
 }
@@ -302,7 +302,7 @@ int Trick::VariableReference::stageValue(bool validate_address) {
     // Try to recreate connection if it has been broken
     if (_var_info->address == &_bad_ref_int) {
         REF2 *new_ref = ref_attributes(_var_info->reference);
-        if (new_ref != NULL) {
+        if (new_ref != nullptr) {
             _var_info = new_ref;
             _address = _var_info->address;
             // _requested_units = "";
@@ -316,7 +316,7 @@ int Trick::VariableReference::stageValue(bool validate_address) {
     // (when num_index > attr->num_index and attr->type == TRICK_STL)
     if ( _var_info->pointer_present == 1 && !_used_stl_indexing ) {
         _address = follow_address_path(_var_info) ;
-        if (_address == NULL) {
+        if (_address == nullptr) {
             tagAsInvalid();
         } else if ( validate_address ) {
             validate();
@@ -347,7 +347,7 @@ int Trick::VariableReference::stageValue(bool validate_address) {
 
     // handle c++ string and char*
     if ( _trick_type == TRICK_STRING ) {
-        if (_address == NULL) {
+        if (_address == nullptr) {
             _size = 0 ;
         } else {
             _size = strlen((char*)_address) + 1 ;
@@ -355,13 +355,13 @@ int Trick::VariableReference::stageValue(bool validate_address) {
     }
     // handle c++ wstring and wchar_t*
     if ( _trick_type == TRICK_WSTRING ) {
-        if (_address == NULL) {
+        if (_address == nullptr) {
             _size = 0 ;
         } else {
             _size = (wcslen((wchar_t *)_address) + 1) * sizeof(wchar_t);
         }
     }
-    if(_address != NULL) {
+    if(_address != nullptr) {
         memcpy( _stage_buffer , _address , _size ) ;
     }
 
@@ -378,7 +378,7 @@ bool Trick::VariableReference::validate() {
     if ( (_trick_type != TRICK_STRING) and
             (_trick_type != TRICK_WSTRING) and
             (_var_info->address != &_bad_ref_int) and
-            (get_alloc_info_of(_address) == NULL) ) {
+            (get_alloc_info_of(_address) == nullptr) ) {
         
         // This variable is broken, make it into an error ref
         tagAsInvalid();
@@ -481,7 +481,7 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             break;
 
         case TRICK_STRING:
-            if ((char *) buf_ptr != NULL) {
+            if ((char *) buf_ptr != nullptr) {
                 write_escaped_string(out, (const char *) buf_ptr);
                 bytes_written = _size ;
             } else {
@@ -490,7 +490,7 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             break;
 
         case TRICK_WSTRING:
-            if ((wchar_t *) buf_ptr != NULL) {
+            if ((wchar_t *) buf_ptr != nullptr) {
                 // convert wide char string char string
                 size_t len = wcs_to_ncs_len( (wchar_t *)buf_ptr) + 1 ;
 

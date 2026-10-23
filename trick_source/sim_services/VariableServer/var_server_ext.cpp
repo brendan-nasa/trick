@@ -22,7 +22,7 @@ Trick::VariableServerSession * get_session() {
 int var_add(std::string in_name) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_add(in_name) ;
     }
     return(0) ;
@@ -31,7 +31,7 @@ int var_add(std::string in_name) {
 int var_add(std::string in_name, std::string in_units) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_add(in_name, in_units) ;
     }
     return(0) ;
@@ -40,7 +40,7 @@ int var_add(std::string in_name, std::string in_units) {
 int var_remove(std::string in_name) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_remove(in_name) ;
     }
     return(0) ;
@@ -49,7 +49,7 @@ int var_remove(std::string in_name) {
 int var_units(std::string var_name , std::string units_name) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_units(var_name , units_name) ;
     }
     return(0) ;
@@ -58,7 +58,7 @@ int var_units(std::string var_name , std::string units_name) {
 int var_exists(std::string in_name) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_exists(in_name) ;
     }
     return(0) ;
@@ -68,7 +68,7 @@ int var_get_stl_size(std::string in_name)
 {
     Trick::VariableServerSession *session = get_session();
 
-    if (session != NULL)
+    if (session != nullptr)
     {
         session->var_get_stl_size(in_name);
     }
@@ -78,7 +78,7 @@ int var_get_stl_size(std::string in_name)
 int var_send_once(std::string in_name) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_send_once(in_name, 1) ;
     }
     return(0) ;
@@ -87,7 +87,7 @@ int var_send_once(std::string in_name) {
 int var_send_once(std::string in_name, int num) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_send_once(in_name, num) ;
     }
     return(0) ;
@@ -96,7 +96,7 @@ int var_send_once(std::string in_name, int num) {
 int var_send() {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_send() ;
     }
     return(0) ;
@@ -105,7 +105,7 @@ int var_send() {
 int var_clear() {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_clear() ;
     }
 
@@ -116,7 +116,7 @@ int var_clear() {
 int var_cycle(double in_rate) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_cycle(in_rate) ;
     }
     return(0) ;
@@ -125,7 +125,7 @@ int var_cycle(double in_rate) {
 int var_pause() {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->set_pause(true) ;
     }
     return(0) ;
@@ -135,7 +135,7 @@ int var_pause() {
 int var_unpause() {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->set_pause(false) ;
     }
     return(0) ;
@@ -145,7 +145,7 @@ int var_unpause() {
 int var_exit() {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_exit() ;
     }
     return(0) ;
@@ -154,7 +154,7 @@ int var_exit() {
 int var_validate_address(int on_off) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_validate_address((bool)on_off) ;
     }
     return(0) ;
@@ -163,7 +163,7 @@ int var_validate_address(int on_off) {
 int var_debug(int level) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_debug(level) ;
     }
     return(0) ;
@@ -172,7 +172,7 @@ int var_debug(int level) {
 int var_ascii() {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_ascii() ;
     }
     return(0) ;
@@ -181,7 +181,7 @@ int var_ascii() {
 int var_binary() {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_binary() ;
     }
     return(0) ;
@@ -195,7 +195,7 @@ int var_retry_bad_ref() {
 int var_binary_nonames() {
     Trick::VariableServerSession * session  = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_binary_nonames() ;
     }
     return(0) ;
@@ -204,7 +204,7 @@ int var_binary_nonames() {
 int var_set_copy_mode(int mode) {
     Trick::VariableServerSession * session = get_session();
 
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_set_copy_mode(mode) ;
         if ( mode == VS_COPY_SCHEDULED ) {
             the_vs->get_next_sync_call_time() ;
@@ -216,7 +216,7 @@ int var_set_copy_mode(int mode) {
 
 int var_set_write_mode(int mode) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_set_write_mode(mode) ;
     }
     return 0 ;
@@ -224,7 +224,7 @@ Trick::VariableServerSession * session = get_session();
 
 int var_set_send_stdio(int mode) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->set_send_stdio((bool)mode) ;
     }
     return 0 ;
@@ -232,7 +232,7 @@ Trick::VariableServerSession * session = get_session();
 
 int var_sync(int mode) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_sync(mode) ;
         if ( mode ) {
             the_vs->get_next_sync_call_time() ;
@@ -244,7 +244,7 @@ Trick::VariableServerSession * session = get_session();
 
 int var_set_frame_multiple(unsigned int mult) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_set_frame_multiple(mult) ;
     }
     return 0 ;
@@ -252,7 +252,7 @@ Trick::VariableServerSession * session = get_session();
 
 int var_set_frame_offset(unsigned int offset) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_set_frame_offset(offset) ;
     }
     return 0 ;
@@ -260,7 +260,7 @@ Trick::VariableServerSession * session = get_session();
 
 int var_set_freeze_frame_multiple(unsigned int mult) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_set_freeze_frame_multiple(mult) ;
     }
     return 0 ;
@@ -268,7 +268,7 @@ Trick::VariableServerSession * session = get_session();
 
 int var_set_freeze_frame_offset(unsigned int offset) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_set_freeze_frame_offset(offset) ;
     }
     return 0 ;
@@ -276,7 +276,7 @@ Trick::VariableServerSession * session = get_session();
 
 int var_byteswap(bool on_off) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->var_byteswap(on_off) ;
     }
     return(0) ;
@@ -285,7 +285,7 @@ Trick::VariableServerSession * session = get_session();
 int var_write_stdio(int stream , std::string text ) {
     // std::cout << "Executing var_write_stdio" << std::endl;
     Trick::VariableServerSession * session = get_session();
-    if (session != NULL and session->get_send_stdio() == true) {
+    if (session != nullptr and session->get_send_stdio() == true) {
         session->write_stdio(stream, text) ;
     } else {
         if ( stream == 1 ) {
@@ -299,7 +299,7 @@ int var_write_stdio(int stream , std::string text ) {
 
 int var_set_client_tag( std::string text ) {
     Trick::VariableServerSessionThread * vst = get_vst();
-    if (vst != NULL) {
+    if (vst != nullptr) {
 
         vst->set_client_tag(text);
 
@@ -314,7 +314,7 @@ int var_set_client_tag( std::string text ) {
 int var_send_list_size() {
 
     Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->send_list_size() ;
     }
     return(0) ;
@@ -322,7 +322,7 @@ int var_send_list_size() {
 
 int send_sie_resource() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->send_sie_resource() ;
     }
     return 0 ;
@@ -330,7 +330,7 @@ Trick::VariableServerSession * session = get_session();
 
 int send_sie_class() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->send_sie_class() ;
     }
     return 0 ;
@@ -338,7 +338,7 @@ Trick::VariableServerSession * session = get_session();
 
 int send_sie_enum() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         session->send_sie_enum() ;
     }
     return 0 ;
@@ -346,7 +346,7 @@ Trick::VariableServerSession * session = get_session();
 
 int send_sie_top_level_objects() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         return session->send_sie_top_level_objects() ;
     }
     return 0 ;
@@ -354,7 +354,7 @@ Trick::VariableServerSession * session = get_session();
 
 int send_file(std::string file_name) {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         return session->send_file(file_name) ;
     }
     return 0 ;
@@ -364,7 +364,7 @@ Trick::VariableServerSession * session = get_session();
 // Command to turn on log to playback file
 int var_server_log_on() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         return session->set_log(true) ;
     }
     return 0 ;
@@ -373,7 +373,7 @@ Trick::VariableServerSession * session = get_session();
 // Command to turn off log to playback file
 int var_server_log_off() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         return session->set_log(false) ;
     }
     return 0 ;
@@ -382,7 +382,7 @@ Trick::VariableServerSession * session = get_session();
 // Command to turn on log to playback file
 int var_server_session_log_on() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         return session->set_session_log(true) ;
     }
     return 0 ;
@@ -391,7 +391,7 @@ Trick::VariableServerSession * session = get_session();
 // Command to turn off log to playback file
 int var_server_session_log_off() {
 Trick::VariableServerSession * session = get_session();
-    if (session != NULL ) {
+    if (session != nullptr ) {
         return session->set_session_log(false) ;
     }
     return 0 ;
@@ -538,16 +538,16 @@ void var_set_value< void * > ( V_DATA & v_data , void * value ) {
 template<class T>
 int var_set_base( const char  * var , T value , const char * units ) {
     REF2 *ref = ref_attributes(var) ;
-    if ( ref != NULL ) {
+    if ( ref != nullptr ) {
         if (ref->attr->io & TRICK_VAR_INPUT) {
             V_TREE v_tree ;
             V_DATA v_data ;
             v_tree.v_data = &v_data ;
             var_set_value( v_data , value) ;
-            if ( units != NULL ) {
+            if ( units != nullptr ) {
                 ref->units = strdup(map_trick_units_to_udunits(units).c_str()) ;
             } else {
-                ref->units = NULL ;
+                ref->units = nullptr ;
             }
             ref_assignment(ref , &v_tree) ;
 
@@ -556,7 +556,7 @@ int var_set_base( const char  * var , T value , const char * units ) {
 
             // Free the REF2 structure itself
             free(ref) ;
-            ref = NULL;
+            ref = nullptr;
         } else {
             message_publish(MSG_WARNING,"Cannot assign to %s because io_spec does not allow input\n", var) ;
             return 1;
