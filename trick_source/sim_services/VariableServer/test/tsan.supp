@@ -1,0 +1,8 @@
+# ThreadSanitizer suppressions for known variable server issues.
+# Remove each entry when its fix lands so the sanitize-thread target catches regressions.
+
+# _broadcast is a plain bool written by set_broadcast() while the listen loop reads it.
+race:Trick::VariableServerListenThread::set_broadcast
+
+# Session threads that exit after a client disconnects are never joined or detached.
+thread:Trick::ThreadBase::create_thread
