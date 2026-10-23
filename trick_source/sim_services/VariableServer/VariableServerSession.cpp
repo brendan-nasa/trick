@@ -10,6 +10,9 @@ int Trick::VariableServerSession::instance_counter = 0;
 std::string Trick::VariableServerSession::log_subdir = "session_logs";
 
 Trick::VariableServerSession::VariableServerSession() {
+    _connection = nullptr;
+    _time = 0.0;
+    _saved_pause_cmd = false;
     _debug = 0;
     _enabled = true ;
     _log = false ;

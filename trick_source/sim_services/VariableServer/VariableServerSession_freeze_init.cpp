@@ -1,6 +1,6 @@
 
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 #include "trick/VariableServerSession.hh"
 #include "trick/TrickConstant.hh"

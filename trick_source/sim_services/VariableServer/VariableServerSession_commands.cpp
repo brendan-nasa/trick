@@ -1,8 +1,8 @@
 
-#include <string.h>
+#include <cstring>
 #include <iostream>
 #include <sstream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <udunits2.h>
 #include "trick/VariableServerSession.hh"
 #include "trick/variable_server_message_types.h"
@@ -249,18 +249,18 @@ int Trick::VariableServerSession::var_debug(int level) {
 }
 
 int Trick::VariableServerSession::var_ascii() {
-    _binary_data = 0 ;
+    _binary_data = false ;
     return(0) ;
 }
 
 int Trick::VariableServerSession::var_binary() {
-    _binary_data = 1 ;
+    _binary_data = true ;
     return(0) ;
 }
 
 int Trick::VariableServerSession::var_binary_nonames() {
-    _binary_data = 1 ;
-    _binary_data_nonames = 1 ;
+    _binary_data = true ;
+    _binary_data_nonames = true ;
     return(0) ;
 }
 
@@ -352,7 +352,6 @@ int Trick::VariableServerSession::set_send_stdio(bool on_off) {
 
 int Trick::VariableServerSession::send_list_size() {
     
-    unsigned int msg_type = VS_LIST_SIZE;
     int var_count = _session_variables.size();
 
     // send number of variables
@@ -410,7 +409,7 @@ int Trick::VariableServerSession::transmit_file(std::string filename) {
     fseek(fp , 0L, SEEK_END) ;
     file_size = ftell(fp) ;
 
-    sprintf(buffer, "%d\t%u\n\0" , VS_SIE_RESOURCE, file_size) ;
+    sprintf(buffer, "%d\t%u\n" , VS_SIE_RESOURCE, file_size) ;
     std::string message(buffer);
     _connection->write(message);
     rewind(fp) ;

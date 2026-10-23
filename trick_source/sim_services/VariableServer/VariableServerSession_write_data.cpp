@@ -15,13 +15,15 @@ PROGRAMMERS: (((Alex Lin) (NASA) (8/06) (--)))
 #include "trick/message_proto.h"
 #include "trick/message_type.h"
 
-#define MAX_MSG_LEN    8192
+namespace {
+constexpr int MAX_MSG_LEN = 8192;
+}
 
 
 
 int Trick::VariableServerSession::write_binary_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type) {
-    typedef std::vector<VariableReference *> VarList;
-    typedef std::pair<int,VarList> MessageData;
+    using VarList = std::vector<VariableReference *>;
+    using MessageData = std::pair<int,VarList>;
 
     // Some constants to make size calculations more readable
     static const int header_size = 12;
@@ -33,7 +35,7 @@ int Trick::VariableServerSession::write_binary_data(const std::vector<VariableRe
     // Calculate how many messages and what vars in each
     int total_size = header_size;
     VarList curr_message_vars;
-    for (int i = 0; i < given_vars.size(); i++) {
+    for (size_t i = 0; i < given_vars.size(); i++) {
         VariableReference * var = given_vars[i];
 
         int total_var_size = 0;
@@ -73,7 +75,6 @@ int Trick::VariableServerSession::write_binary_data(const std::vector<VariableRe
     message_sizes_and_vars.emplace_back(MessageData(total_size, curr_message_vars));
     
     // Now write out all of these messages
-    int var_index = 0;
     for (const auto& message_info : message_sizes_and_vars) {
         int curr_message_size = message_info.first;
         VarList curr_message_vars = message_info.second;
@@ -135,7 +136,7 @@ int Trick::VariableServerSession::write_ascii_data(const std::vector<VariableRef
     int message_size = message_stream.str().size();
 
     // Load each variable
-    for (int i = 0; i < given_vars.size(); i++) {
+    for (size_t i = 0; i < given_vars.size(); i++) {
         message_stream << "\t";
 
         std::stringstream var_stream;

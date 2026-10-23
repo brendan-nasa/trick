@@ -84,7 +84,7 @@ void * Trick::VariableServerSessionThread::thread_body() {
     pthread_mutex_unlock(&_connection_status_mutex);
 
     try {
-        while (1) {
+        while (true) {
             // Shutdown here if it's time
             test_shutdown(exit_var_thread, reinterpret_cast<void *>(this));
 
@@ -155,5 +155,6 @@ void * Trick::VariableServerSessionThread::thread_body() {
 
     thread_shutdown(exit_var_thread, this);
     // No return from this.
+    return nullptr;
 }
 

@@ -1,6 +1,6 @@
 
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include "trick/VariableServerSessionThread.hh"
 #include "trick/exec_proto.h"
 #include "trick/message_proto.h"
@@ -17,7 +17,7 @@ static int instance_num = 0;
 Trick::VariableServerSessionThread::VariableServerSessionThread() : VariableServerSessionThread (new VariableServerSession()) {}
 
 Trick::VariableServerSessionThread::VariableServerSessionThread(VariableServerSession * session) :
- Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _debug(0), _session(session), _connection(nullptr) {
+ Trick::SysThread(std::string("VarServer" + std::to_string(instance_num++))) , _session(session), _connection(nullptr), _debug(0), _saved_pause_cmd(false) {
 
     _connection_status = CONNECTION_PENDING ;
 

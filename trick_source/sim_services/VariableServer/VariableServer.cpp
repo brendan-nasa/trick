@@ -15,6 +15,8 @@ Trick::VariableServer::VariableServer()
     , info_msg(false)
     , log(false)
     , session_log(false)
+    , copy_data_job(nullptr)
+    , copy_and_write_freeze_job(nullptr)
     , allow_connections(false)
     , bypass_ip_check(false)
 {
@@ -239,7 +241,7 @@ bool Trick::VariableServer::check_ip(const std::string& ip)
         std::string entry = *it;
         size_t slash;
 
-        struct in_addr addr;
+        struct in_addr addr {};
         if (inet_pton(AF_INET, ip.c_str(), &addr) != 1)
         {
             return false;

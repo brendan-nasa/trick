@@ -13,7 +13,7 @@ int Trick::VariableServerSession::copy_sim_data() {
     return copy_sim_data(_session_variables, true);
 }
 
-int Trick::VariableServerSession::copy_sim_data(std::vector<VariableReference *>& given_vars, bool cyclical) {
+int Trick::VariableServerSession::copy_sim_data(std::vector<VariableReference *>& given_vars, bool /*cyclical*/) {
 
     if (given_vars.size() == 0) {
         return 0;

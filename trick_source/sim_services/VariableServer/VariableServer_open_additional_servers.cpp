@@ -1,5 +1,5 @@
 
-#include <stdio.h>
+#include <cstdio>
 #include "trick/VariableServer.hh"
 #include "trick/message_proto.h"
 #include "trick/message_type.h"

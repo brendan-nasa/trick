@@ -1,6 +1,6 @@
 
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 #include "trick/VariableServer.hh"
 #include "trick/exec_proto.h"

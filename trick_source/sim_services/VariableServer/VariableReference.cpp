@@ -12,10 +12,10 @@
 
 #include <iomanip> // for setprecision
 #include <iostream>
-#include <math.h> // for fpclassify
+#include <cmath> // for fpclassify
 #include <sstream>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <udunits2.h>
 
 // Static variables to be addresses that are known to be the error ref address
@@ -62,7 +62,7 @@ REF2* make_time_ref(double * time) {
     return new_ref;
 }
 
-Trick::VariableReference::VariableReference(std::string var_name, double* time) : _staged(false), _write_ready(false) {
+Trick::VariableReference::VariableReference(std::string var_name, double* time) : _used_stl_indexing(false), _staged(false), _write_ready(false) {
     if (var_name != "time") {
         ASSERT(0);
     }
@@ -390,7 +390,7 @@ bool Trick::VariableReference::validate() {
 }
 
 static void write_escaped_string( std::ostream& os, const char* s) {
-    for (int ii=0 ; ii<strlen(s) ; ii++) {
+    for (size_t ii=0, len=strlen(s) ; ii<len ; ii++) {
         if (isprint(s[ii])) {
             os << s[ii];
         } else {
@@ -653,7 +653,7 @@ int Trick::VariableReference::writeSizeBinary( std::ostream& out, bool byteswap 
     return 0;
 }
 
-int Trick::VariableReference::writeNameBinary( std::ostream& out, bool byteswap ) const {
+int Trick::VariableReference::writeNameBinary( std::ostream& out, bool /*byteswap*/ ) const {
     std::string name = getName();
     out.write(name.c_str(), name.size());
 

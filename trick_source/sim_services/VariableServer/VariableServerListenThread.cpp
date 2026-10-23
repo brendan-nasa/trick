@@ -11,7 +11,6 @@
 #include <iostream>
 #include <pwd.h>
 
-#define MAX_MACHINE_NAME 80
 
 extern Trick::VariableServer* the_vs;
 
@@ -159,7 +158,7 @@ void * Trick::VariableServerListenThread::thread_body() {
         initializeMulticast();
     }
 
-    while (1) {
+    while (true) {
         // Quit here if it's time
         test_shutdown();
 
