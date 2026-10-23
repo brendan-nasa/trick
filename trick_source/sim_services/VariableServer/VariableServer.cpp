@@ -14,6 +14,7 @@ Trick::VariableServer::VariableServer()
     : enabled(false)
     , info_msg(false)
     , log(false)
+    , session_log(false)
     , allow_connections(false)
     , bypass_ip_check(false)
 {
