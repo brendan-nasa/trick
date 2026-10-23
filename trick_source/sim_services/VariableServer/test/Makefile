@@ -104,17 +104,17 @@ $(OBJ_DIR):
 
 ifneq ($(SANITIZE),)
 $(VS_OBJS): $(OBJ_DIR)/vs_%.o: $(TEST_DIR)/../%.cpp | $(OBJ_DIR)
-	$(TRICK_CXX) $(TRICK_CXXFLAGS) -c $< -o $@
+	$(TRICK_CXX) $(TRICK_CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(TESTS): $(VS_OBJS)
 endif
 
 $(TEST_OBJS): $(OBJ_DIR)/%.o: %.cc $(OBJ_DIR)
-	$(TRICK_CXX) $(TRICK_CXXFLAGS) -c $< -o $@ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
+	$(TRICK_CXX) $(TRICK_CXXFLAGS) -MMD -MP -c $< -o $@ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
 
 $(ICG_OBJS): $(OBJ_DIR)/io_%.o : %.hh $(OBJ_DIR)
 	${TRICK_HOME}/bin/trick-ICG -sim_services -o ./io_src $(TRICK_CXXFLAGS) $<
-	$(TRICK_CXX) $(TRICK_CXXFLAGS) -c io_src/io_$*.cpp -o $@ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
+	$(TRICK_CXX) $(TRICK_CXXFLAGS) -MMD -MP -c io_src/io_$*.cpp -o $@ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
 
 $(VARIABLE_REFERENCE_TESTS): %: $(OBJ_DIR)/%.o $(OBJ_DIR)/io_VariableReference_test.o
 	$(TRICK_CXX) $(TRICK_SYSTEM_LDFLAGS) $(TRICK_CXXFLAGS) -o $@ $^ -L${TRICK_HOME}/lib_${TRICK_HOST_CPU} $(TRICK_LIBS) $(TRICK_EXEC_LINK_LIBS)
@@ -154,3 +154,6 @@ clean :
 	rm -f $(TESTS)
 	rm -f *.gcno *.gcda
 	rm -rf io_src xml obj sanitize_address sanitize_thread
+
+# Rebuild objects when any header they include changes
+-include $(wildcard $(OBJ_DIR)/*.d)
