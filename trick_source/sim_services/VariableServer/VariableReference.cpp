@@ -129,9 +129,12 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
     _trick_type        = Trick::ReferenceUtils::effective_trick_type(_var_info);
     _used_stl_indexing = Trick::ReferenceUtils::is_stl_ref(_var_info);
 
-    if (_used_stl_indexing)
+    // Only a reference that ends on the STL container itself (vec, vec[0]) takes its size from the
+    // element type. Members reached through an element (vec[0].label) fall through to the normal
+    // array sizing below; _used_stl_indexing still skips follow_address_path for them.
+    if (_used_stl_indexing && _var_info->attr->type == TRICK_STL)
     {
-        // effective_trick_size returns the correct element byte size for every STL case
+        // effective_trick_size returns the element byte size for an indexed container
         _size = (int)Trick::ReferenceUtils::effective_trick_size(_var_info);
         // address already points to the correct element from ref_dim; treat as single value
     }

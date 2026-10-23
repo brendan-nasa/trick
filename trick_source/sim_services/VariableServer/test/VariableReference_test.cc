@@ -134,6 +134,38 @@ TEST_F(VariableReference_test, stl_var) {
     EXPECT_EQ(ss.str(), "5");
 }
 
+TEST_F(VariableReference_test, stl_element_member_char_array) {
+    // ARRANGE
+    NestedObject by_value{};
+    NestedObject pointed_to{};
+    strcpy(by_value.label, "value");
+    strcpy(pointed_to.label, "pointer");
+    TestObject my_test;
+    my_test.nested_vec.push_back(by_value);
+    my_test.nested_ptr_vec.push_back(&pointed_to);
+    (void) memmgr->declare_extern_var(&my_test, "TestObject my_test");
+
+    Trick::VariableReference ref_value("my_test.nested_vec[0].label");
+    Trick::VariableReference ref_pointer("my_test.nested_ptr_vec[0].label");
+    std::stringstream ss_value;
+    std::stringstream ss_pointer;
+
+    // ACT
+    ref_value.stageValue();
+    ref_value.prepareForWrite();
+    ref_value.writeValueAscii(ss_value);
+    ref_pointer.stageValue();
+    ref_pointer.prepareForWrite();
+    ref_pointer.writeValueAscii(ss_pointer);
+
+    // ASSERT
+    // A char array member reached through an STL element is the whole array, not one char.
+    EXPECT_EQ(ref_value.getSizeBinary(), 8);
+    EXPECT_EQ(ss_value.str(), "value");
+    EXPECT_EQ(ref_pointer.getSizeBinary(), 8);
+    EXPECT_EQ(ss_pointer.str(), "pointer");
+}
+
 TEST_F(VariableReference_test, structured_var) {
     // ARRANGE
     TestObject my_test;

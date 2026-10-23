@@ -18,6 +18,7 @@ class NestedObject {
     public:
     int a;
     int b;
+    char label[8];
 };
 
 class TestObject {
@@ -33,6 +34,8 @@ class TestObject {
     int error_units; /* asvdsfkj fake units */
     wchar_t * wchar_str;
     std::vector<int> vec;
+    std::vector<NestedObject> nested_vec;
+    std::vector<NestedObject *> nested_ptr_vec;
 
     NestedObject obj;
 };
