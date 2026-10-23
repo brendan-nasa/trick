@@ -223,7 +223,7 @@ int Trick::VariableReference::setRequestedUnits(std::string units_name) {
     auto publish = [](MESSAGE_TYPE type, const std::string& message) {
         std::ostringstream oss;
         oss << "Variable Server: " << message << std::endl;
-        message_publish(type, oss.str().c_str());
+        message_publish(type, "%s", oss.str().c_str());
     };
 
     auto publishError = [&](const std::string& units) {

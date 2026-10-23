@@ -18,7 +18,7 @@ bool sender_allowed(Trick::VariableServer * vs, const std::string& sender_ip) {
         return true;
     }
     std::string err_msg = "ILLEGAL IP CONNECTION ATTEMPTED: " + sender_ip + "\n";
-    message_publish(MSG_ERROR, err_msg.c_str());
+    message_publish(MSG_ERROR, "%s", err_msg.c_str());
     return false;
 }
 

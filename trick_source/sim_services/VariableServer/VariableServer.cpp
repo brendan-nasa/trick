@@ -218,7 +218,7 @@ const std::set<std::string>& Trick::VariableServer::get_ip_allowlist() { return 
 void Trick::VariableServer::add_ip(const std::string& ip)
 {
     std::string msg = "Trick VariableServer: Adding " + ip + " to the allowlist.\n";
-    message_publish(MSG_INFO, msg.c_str());
+    message_publish(MSG_INFO, "%s", msg.c_str());
 
     ip_allowlist.insert(ip);
 }
@@ -226,7 +226,7 @@ void Trick::VariableServer::add_ip(const std::string& ip)
 void Trick::VariableServer::remove_ip(const std::string& ip)
 {
     std::string msg = "Trick VariableServer: Removing " + ip + " from the allowlist.\n";
-    message_publish(MSG_INFO, msg.c_str());
+    message_publish(MSG_INFO, "%s", msg.c_str());
 
     ip_allowlist.erase(ip);
 }

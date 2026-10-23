@@ -50,8 +50,8 @@ std::vector<std::string> split (const std::string& str, const char delim) {
 int Trick::VariableServerSession::var_send_once(std::string in_name, int num_vars) {
     std::vector<std::string> var_names = split(in_name, ',');
 
-    if (var_names.size() != num_vars) {
-        message_publish(MSG_ERROR, "Number of variables sent to var_send_once (%d) does not match num_vars (%d).\n", var_names.size(), num_vars);
+    if (var_names.size() != static_cast<size_t>(num_vars)) {
+        message_publish(MSG_ERROR, "Number of variables sent to var_send_once (%d) does not match num_vars (%d).\n", static_cast<int>(var_names.size()), num_vars);
         return -1;
     }
 

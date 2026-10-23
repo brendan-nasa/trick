@@ -144,7 +144,7 @@ void Trick::VariableServerSession::log_received_message(const std::string& msg) 
     }
 
     if (_debug >= 3) {
-        message_publish(MSG_DEBUG, "%p tag=<%s> var_server received bytes = msg_len = %d\n", _connection, _connection->getClientTag().c_str(), msg.size());
+        message_publish(MSG_DEBUG, "%p tag=<%s> var_server received bytes = msg_len = %d\n", _connection, _connection->getClientTag().c_str(), static_cast<int>(msg.size()));
     }
 
     if (_debug >= 1 || _info_msg) {

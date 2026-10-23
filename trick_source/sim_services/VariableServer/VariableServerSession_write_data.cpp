@@ -115,7 +115,7 @@ int Trick::VariableServerSession::write_binary_data(const std::vector<VariableRe
 
         if (_debug >= 2) {
             message_publish(MSG_DEBUG, "%p tag=<%s> var_server sending %u binary bytes containing %d variables.\n",
-                            _connection, _connection->getClientTag().c_str(), curr_message_size, curr_message_vars.size());
+                            _connection, _connection->getClientTag().c_str(), curr_message_size, static_cast<int>(curr_message_vars.size()));
         }
 
         // Send it out!
@@ -190,7 +190,7 @@ int Trick::VariableServerSession::write_ascii_data(const std::vector<VariableRef
 
     if (_debug >= 2) {
         message_publish(MSG_DEBUG, "%p tag=<%s> var_server sending %d ascii bytes:\n%s\n",
-                        _connection, _connection->getClientTag().c_str(), message.size(), message.c_str());
+                        _connection, _connection->getClientTag().c_str(), static_cast<int>(message.size()), message.c_str());
     }
 
     int result = _connection->write(message);

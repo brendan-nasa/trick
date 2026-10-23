@@ -1799,3 +1799,19 @@ TEST_F(VariableServerSession_send_file_test, DISABLED_does_not_leak_descriptor) 
 
     EXPECT_EQ(after, before);
 }
+
+TEST_F(VariableServerSession_test, bad_units_message_is_not_a_format_string) {
+    // ARRANGE
+    Trick::UdUnits udunits;
+    udunits.read_default_xml();
+    double vs_d = 1.0;
+    (void) memmgr.declare_extern_var(&vs_d, "double vs_d");
+    Trick::VariableReference ref("vs_d");
+
+    // ASSERT
+    // Client-supplied units must reach the log verbatim, not be interpreted as printf directives.
+    EXPECT_CALL(message_publisher, publish(MSG_ERROR, ::testing::HasSubstr("[%s%s%s%s]")));
+
+    // ACT
+    ref.setRequestedUnits("%s%s%s%s");
+}
