@@ -113,6 +113,24 @@ class WorkflowCommonTestCase(unittest.TestCase):
         self.assertTrue(f.readlines()[0].strip() == "hi")
         f.close()
 
+    def test_job_reset_allows_rerun(self):
+        # Fails the first time (creating the marker), succeeds once the marker exists
+        marker = "/tmp/WorkflowCommonTestCase_reset_marker"
+        if os.path.exists(marker):
+            os.remove(marker)
+        job = Job(
+            name="testname",
+            command="test -f %s || (touch %s; exit 1)" % (marker, marker),
+            log_file="/tmp/WorkflowCommonTestCase_reset.txt",
+        )
+        self.instance.execute_jobs([job], max_concurrent=1)
+        self.assertTrue(job.get_status() == Job.Status.FAILED)
+        job.reset()
+        self.assertTrue(job.get_status() == Job.Status.NOT_STARTED)
+        self.instance.execute_jobs([job], max_concurrent=1)
+        self.assertTrue(job.get_status() == Job.Status.SUCCESS)
+        os.remove(marker)
+
     def test_job_closes_file_handles_after_completion(self):
         job = Job(
             name="testname",

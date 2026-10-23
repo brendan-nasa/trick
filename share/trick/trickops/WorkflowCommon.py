@@ -501,6 +501,18 @@ class Job(object):
             pass
         self._close_files()
 
+    def reset(self):
+        """
+        Return a finished Job to NOT_STARTED so it can be executed again.
+        The previous attempt's log file is overwritten when the job restarts.
+        """
+        self._close_files()
+        self._process = None
+        self._start_time = None
+        self._stop_time = None
+        self._exit_status = None
+        self._timeout = None
+
 
 class FileSizeJob(Job):
     """

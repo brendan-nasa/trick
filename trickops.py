@@ -56,6 +56,8 @@ class SimTestWorkflow(TrickWorkflow):
               print("REMOVING JOB: " + job.name)
               run_jobs.remove(job)
         this_status = self.execute_jobs(run_jobs, max_concurrent=self.cpus, header="Executing phase " + str(phase) + " runs.", job_timeout=1000)
+        if this_status:
+          this_status = self.retry_failed_runs(run_jobs, phase)
         run_status = run_status or this_status
         jobs += run_jobs
 
@@ -81,6 +83,21 @@ class SimTestWorkflow(TrickWorkflow):
           print ("*"*120, "\n\n\n")
 
       return (builds_status or run_status or len(self.config_errors) > 0 or comparison_result or analysis_status)
+
+    def retry_failed_runs( self, run_jobs, phase ):
+      # Runs of sims labeled retries_allowed can fail for environmental reasons (for example a
+      # client that connects before the sim is listening), so rerun them before calling it a failure.
+      retryable = [job.name for sim in self.get_sims(labels='retries_allowed') for job in sim.get_run_jobs(phase=phase)]
+      for attempt in range(max_retries):
+        failed = [job for job in run_jobs if job.name in retryable and
+                  job.get_status() in (Job.Status.FAILED, Job.Status.TIMEOUT)]
+        if not failed:
+          break
+        for job in failed:
+          job.reset()
+        self.execute_jobs(failed, max_concurrent=self.cpus, job_timeout=1000,
+          header="Retrying " + str(len(failed)) + " phase " + str(phase) + " runs (attempt " + str(attempt + 1) + ").")
+      return any(job.get_status() != Job.Status.SUCCESS for job in run_jobs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Build, run, and compare all test sims for Trick',

@@ -377,26 +377,31 @@ SIM_test_output_dir:
       returns: 0
       analyze: "python3 test/SIM_test_output_dir/ref_files/check_file_endings.py test/SIM_test_output_dir/ref_files/ref_compiletime_S_sie.resource test/SIM_test_output_dir/S_sie.resource && python3 test/SIM_test_output_dir/ref_files/check_file_endings.py test/SIM_test_output_dir/ref_files/ref_runtime_S_sie.resource test/SIM_test_output_dir/sim_output/RUN_test/S_sie.resource"
 
-# The variable server client and SIM_amoeba sometimes fail to connect and need to be retried
+# The variable server client and SIM_amoeba sometimes fail to connect and need to be retried.
+# trickops.py reruns failed runs of sims labeled retries_allowed before reporting a failure.
+# The err runs expect SIGUSR1's exit code, which trickops.py sets for the current platform.
+
+SIM_test_varserv:
+  path: test/SIM_test_varserv
+  build_args: "-t"
+  binary: "T_main_{cpu}_test.exe"
+  labels:
+    - retries_allowed
+  runs:
+    RUN_test/unit_test.py:
+      phase: 1
+      returns: 0
+    RUN_test/err1_test.py:
+      phase: 2
+      returns: 10
+    RUN_test/err2_test.py:
+      phase: 3
+      returns: 10
 
 # JMP (9/23/2023): We can't have these in our regular CI test suite if they are going to
 # periodically fail due to environmental variations over which we have no control. Commenting
 # these out.
 
-# SIM_test_varserv:
-#   path: test/SIM_test_varserv
-#   build_args: "-t"
-#   binary: "T_main_{cpu}_test.exe"
-#   runs:
-#     RUN_test/unit_test.py:
-#       phase: 1
-#       returns: 0
-#     RUN_test/err1_test.py:
-#       phase: 2
-#       returns: 10
-#     RUN_test/err2_test.py:
-#       phase: 3
-#       returns: 10
 # SIM_amoeba:
 #   path: trick_sims/Cannon/SIM_amoeba
 #   build_args: "-t"
