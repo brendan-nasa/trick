@@ -724,7 +724,7 @@ TEST_F (VariableServerTest, NormalArrayCStringRead) {
 
     socket << "trick.var_send_once(\"vsx.vst.point_static_array[0].point_static_label_array[1].label_text\")\n";
     socket >> reply;
-    EXPECT_EQ(strcmp_IgnoringWhiteSpace(reply, "5   Static Label 1 for Static Point 2"), 0) << "Reply: " << reply;
+    EXPECT_EQ(strcmp_IgnoringWhiteSpace(reply, "5   Static Label 2 for Static Point 1"), 0) << "Reply: " << reply;
 }
 
 /************************************/

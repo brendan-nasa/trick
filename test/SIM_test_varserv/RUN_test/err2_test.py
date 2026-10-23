@@ -5,6 +5,8 @@ from trick.unit_test import *
 def main():
 
     trick.var_server_set_port(40000)
+    # Connections are off by default; this also allowlists 127.0.0.1 for the local test client.
+    trick.var_allow_connections()
     trick.var_ascii()
     trick.real_time_enable()
     trick.exec_set_software_frame(0.01)
