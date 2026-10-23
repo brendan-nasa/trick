@@ -179,7 +179,7 @@ int Trick::VariableServerSession::var_exists(std::string in_name) {
     unsigned int msg_type ;
     REF2* var_ref = ref_attributes(in_name.c_str());
 
-    if ( var_ref == (REF2*)nullptr ) {
+    if ( var_ref == nullptr ) {
         error = true;
     }
 
@@ -229,7 +229,7 @@ int Trick::VariableServerSession::var_send() {
 
 int Trick::VariableServerSession::var_cycle(double in_rate) {
     _update_rate = in_rate ;
-    _cycle_tics = (long long)(_update_rate * exec_get_time_tic_value()) ;
+    _cycle_tics = static_cast<long long>(_update_rate * exec_get_time_tic_value()) ;
     return(0) ;
 }
 
@@ -266,7 +266,7 @@ int Trick::VariableServerSession::var_binary_nonames() {
 
 int Trick::VariableServerSession::var_set_copy_mode(int mode) {
     if ( mode >= VS_COPY_ASYNC and mode <= VS_COPY_TOP_OF_FRAME ) {
-        _copy_mode = (VS_COPY_MODE)mode ;
+        _copy_mode = static_cast<VS_COPY_MODE>(mode) ;
         if ( _copy_mode == VS_COPY_SCHEDULED ) {
             long long sim_time_tics ;
             sim_time_tics = exec_get_time_tics() ;
@@ -289,7 +289,7 @@ int Trick::VariableServerSession::var_set_copy_mode(int mode) {
 
 int Trick::VariableServerSession::var_set_write_mode(int mode) {
     if ( mode >= VS_WRITE_ASYNC and mode <= VS_WRITE_WHEN_COPIED ) {
-        _write_mode = (VS_WRITE_MODE)mode ;
+        _write_mode = static_cast<VS_WRITE_MODE>(mode) ;
         return 0 ;
     }
     return -1 ;
@@ -425,7 +425,7 @@ int Trick::VariableServerSession::transmit_file(std::string filename) {
         message = std::string(buffer);
         message.resize(bytes_read);
         ret = _connection->write(message);
-        if (ret != (int)bytes_read) {
+        if (ret != static_cast<int>(bytes_read)) {
             message_publish(MSG_ERROR,"Variable Server Error: Failed to send file. Bytes read: %d Bytes sent: %d\n", bytes_read, ret) ;
             return(-1);
         }

@@ -94,9 +94,9 @@ int Trick::VariableServerSession::write_binary_data(const std::vector<VariableRe
         // <message_indicator><message_size><num_vars>
 
         // Write the header first
-        stream.write((char *)(&written_message_type), sizeof(int)); 
-        stream.write((char *)(&written_header_size), sizeof(int)); 
-        stream.write((char *)(&written_num_vars), sizeof(int));
+        stream.write(reinterpret_cast<char *>(&written_message_type), sizeof(int)); 
+        stream.write(reinterpret_cast<char *>(&written_header_size), sizeof(int)); 
+        stream.write(reinterpret_cast<char *>(&written_num_vars), sizeof(int));
 
         // Write variables next
         for (VariableReference * var : curr_message_vars) {
@@ -130,7 +130,7 @@ int Trick::VariableServerSession::write_binary_data(const std::vector<VariableRe
 int Trick::VariableServerSession::write_ascii_data(const std::vector<VariableReference *>& given_vars, VS_MESSAGE_TYPE message_type ) {
     // Load message type first
     std::stringstream message_stream;
-    message_stream << (int)message_type;
+    message_stream << static_cast<int>(message_type);
 
     int message_size = message_stream.str().size();
 

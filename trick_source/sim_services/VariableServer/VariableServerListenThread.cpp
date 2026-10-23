@@ -56,7 +56,7 @@ void Trick::VariableServerListenThread::set_multicast_group (MulticastGroup * gr
 
 const char * Trick::VariableServerListenThread::get_hostname() {
     std::string hostname = _requested_source_address;
-    char * ret = (char *) malloc(hostname.length() + 1);
+    char * ret = static_cast<char *>(malloc(hostname.length() + 1));
     strncpy(ret, hostname.c_str(), hostname.length());
     ret[hostname.length()] = '\0';
     return ret;
@@ -213,10 +213,10 @@ void * Trick::VariableServerListenThread::thread_body() {
             // Otherwise, broadcast on the multicast channel if enabled
             char buf1[1024];
             snprintf(buf1, sizeof(buf1), "%s\t%hu\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%hu\t%d\t%d\n",
-                     _listener->getHostname().c_str(), (unsigned short)_listener->getPort(), user_name.c_str(),
-                     (int)getpid(), command_line_args_get_default_dir(), command_line_args_get_cmdline_name(),
+                     _listener->getHostname().c_str(), static_cast<unsigned short>(_listener->getPort()), user_name.c_str(),
+                     static_cast<int>(getpid()), command_line_args_get_default_dir(), command_line_args_get_cmdline_name(),
                      command_line_args_get_input_file(), version.c_str(), _user_tag.c_str(),
-                     (unsigned short)_listener->getPort(), (int)the_vs->get_enabled(), (int)exec_get_mode());
+                     static_cast<unsigned short>(_listener->getPort()), static_cast<int>(the_vs->get_enabled()), static_cast<int>(exec_get_mode()));
 
             std::string message(buf1);
 

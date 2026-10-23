@@ -155,7 +155,7 @@ int var_validate_address(int on_off) {
     Trick::VariableServerSession * session = get_session();
 
     if (session != nullptr ) {
-        session->var_validate_address((bool)on_off) ;
+        session->var_validate_address(static_cast<bool>(on_off)) ;
     }
     return(0) ;
 }
@@ -225,7 +225,7 @@ Trick::VariableServerSession * session = get_session();
 int var_set_send_stdio(int mode) {
 Trick::VariableServerSession * session = get_session();
     if (session != nullptr ) {
-        session->set_send_stdio((bool)mode) ;
+        session->set_send_stdio(static_cast<bool>(mode)) ;
     }
     return 0 ;
 }
@@ -525,7 +525,7 @@ void var_set_value< long long > ( V_DATA & v_data , long long value ) {
 
 template<>
 void var_set_value< const char * > ( V_DATA & v_data , const char * value ) {
-    v_data.value.cp = (char *)value ;
+    v_data.value.cp = const_cast<char *>(value) ;
     v_data.type = TRICK_STRING ;
 }
 

@@ -23,7 +23,7 @@ Trick::VariableServerSession::VariableServerSession() {
     _freeze_frame_multiple = 1 ;
     _freeze_frame_offset = 0 ;
     _update_rate = 0.1 ;
-    _cycle_tics = (long long)(_update_rate * exec_get_time_tic_value()) ;
+    _cycle_tics = static_cast<long long>(_update_rate * exec_get_time_tic_value()) ;
     if (_cycle_tics == 0) {
         _cycle_tics = 1;
     }
@@ -241,7 +241,7 @@ std::ostream& Trick::operator<< (std::ostream& s, const Trick::VariableServerSes
 
     s << "    \"variables\":[\n";
 
-    int n_vars = (int)session._session_variables.size();
+    int n_vars = static_cast<int>(session._session_variables.size());
     for (int i=0 ; i<n_vars ; i++) {
         s << *(session._session_variables[i]);
         if ((n_vars-i)>1) {

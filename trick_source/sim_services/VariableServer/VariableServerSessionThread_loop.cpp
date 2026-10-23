@@ -86,7 +86,7 @@ void * Trick::VariableServerSessionThread::thread_body() {
     try {
         while (1) {
             // Shutdown here if it's time
-            test_shutdown(exit_var_thread, (void *) this);
+            test_shutdown(exit_var_thread, reinterpret_cast<void *>(this));
 
             // Pause here if we are in a restart condition
             test_pause();
@@ -118,7 +118,7 @@ void * Trick::VariableServerSessionThread::thread_body() {
             }
 
             // Sleep for the appropriate cycle time
-            usleep((unsigned int) (_session->get_update_rate() * 1000000));
+            usleep(static_cast<unsigned int>(_session->get_update_rate() * 1000000));
         }
     } catch (Trick::ExecutiveException & ex ) {
         message_publish(MSG_ERROR, "\nVARIABLE SERVER COMMANDED exec_terminate\n  ROUTINE: %s\n  DIAGNOSTIC: %s\n" ,

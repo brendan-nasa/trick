@@ -24,26 +24,26 @@ int Trick::VariableReference::_do_not_resolve_bad_ref_int = 0 ;
 
 REF2* Trick::VariableReference::make_error_ref(std::string in_name) {
     REF2* new_ref;
-    new_ref = (REF2*)calloc(1, sizeof(REF2));
+    new_ref = static_cast<REF2*>(calloc(1, sizeof(REF2)));
     new_ref->reference = strdup(in_name.c_str()) ;
     new_ref->units = nullptr ;
-    new_ref->address = (char *)&_bad_ref_int ;
-    new_ref->attr = (ATTRIBUTES*)calloc(1, sizeof(ATTRIBUTES)) ;
+    new_ref->address = reinterpret_cast<char *>(&_bad_ref_int) ;
+    new_ref->attr = static_cast<ATTRIBUTES*>(calloc(1, sizeof(ATTRIBUTES))) ;
     new_ref->attr->type = TRICK_NUMBER_OF_TYPES ;
-    new_ref->attr->units = (char *)"--" ;
+    new_ref->attr->units = const_cast<char *>("--") ;
     new_ref->attr->size = sizeof(int) ;
     return new_ref;
 }
 
 REF2* Trick::VariableReference::make_do_not_resolve_ref(std::string in_name) {
     REF2* new_ref;
-    new_ref = (REF2*)calloc(1, sizeof(REF2));
+    new_ref = static_cast<REF2*>(calloc(1, sizeof(REF2)));
     new_ref->reference = strdup(in_name.c_str()) ;
     new_ref->units = nullptr ;
-    new_ref->address = (char *)&_do_not_resolve_bad_ref_int ;
-    new_ref->attr = (ATTRIBUTES*)calloc(1, sizeof(ATTRIBUTES)) ;
+    new_ref->address = reinterpret_cast<char *>(&_do_not_resolve_bad_ref_int) ;
+    new_ref->attr = static_cast<ATTRIBUTES*>(calloc(1, sizeof(ATTRIBUTES))) ;
     new_ref->attr->type = TRICK_NUMBER_OF_TYPES ;
-    new_ref->attr->units = (char *)"--" ;
+    new_ref->attr->units = const_cast<char *>("--") ;
     new_ref->attr->size = sizeof(int) ;
     return new_ref;
 }
@@ -51,11 +51,11 @@ REF2* Trick::VariableReference::make_do_not_resolve_ref(std::string in_name) {
 // Helper function to deal with time variable
 REF2* make_time_ref(double * time) {
     REF2* new_ref;
-    new_ref = (REF2*)calloc(1, sizeof(REF2));
+    new_ref = static_cast<REF2*>(calloc(1, sizeof(REF2)));
     new_ref->reference = strdup("time") ;
     new_ref->units = strdup("s") ;
-    new_ref->address = (char *)time ;
-    new_ref->attr = (ATTRIBUTES*)calloc(1, sizeof(ATTRIBUTES)) ;
+    new_ref->address = reinterpret_cast<char *>(time) ;
+    new_ref->attr = static_cast<ATTRIBUTES*>(calloc(1, sizeof(ATTRIBUTES))) ;
     new_ref->attr->type = TRICK_DOUBLE ;
     new_ref->attr->units = strdup("s") ;
     new_ref->attr->size = sizeof(double) ;
@@ -135,7 +135,7 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
     if (_used_stl_indexing && _var_info->attr->type == TRICK_STL)
     {
         // effective_trick_size returns the element byte size for an indexed container
-        _size = (int)Trick::ReferenceUtils::effective_trick_size(_var_info);
+        _size = static_cast<int>(Trick::ReferenceUtils::effective_trick_size(_var_info));
         // address already points to the correct element from ref_dim; treat as single value
     }
     else
@@ -162,7 +162,7 @@ Trick::VariableReference::VariableReference(std::string var_name) : _staged(fals
                 _deref = true;
             } else {
                 _deref = true ;
-                _size *= get_size((char*)_address) ;
+                _size *= get_size(static_cast<char*>(_address)) ;
             }
         }
     }
@@ -327,22 +327,22 @@ int Trick::VariableReference::stageValue(bool validate_address) {
 
     // if this variable is a string we need to get the raw character string out of it.
     if (( _trick_type == TRICK_STRING ) && !_deref) {
-        std::string * str_ptr = (std::string *)_var_info->address ;
+        std::string * str_ptr = static_cast<std::string *>(_var_info->address) ;
         // Get a pointer to the internal character array
-        _address = (void *)(str_ptr->c_str()) ;
+        _address = const_cast<char *>(str_ptr->c_str()) ;
     }
 
     // if this variable is a wstring we need to get the raw wide character string out of it.
     if ((_trick_type == TRICK_WSTRING) && !_deref)
     {
-        std::wstring *wstr_ptr = (std::wstring *)_var_info->address;
+        std::wstring *wstr_ptr = static_cast<std::wstring *>(_var_info->address);
         // Get a pointer to the internal wide character array
-        _address = (void *)(wstr_ptr->c_str());
+        _address = const_cast<wchar_t *>(wstr_ptr->c_str());
     }
 
     // if this variable itself is a pointer, dereference it
     if ( _deref ) {
-        _address = *(void**)_var_info->address ;
+        _address = *static_cast<void**>(_var_info->address) ;
     }
 
     // handle c++ string and char*
@@ -350,7 +350,7 @@ int Trick::VariableReference::stageValue(bool validate_address) {
         if (_address == nullptr) {
             _size = 0 ;
         } else {
-            _size = strlen((char*)_address) + 1 ;
+            _size = strlen(static_cast<char*>(_address)) + 1 ;
         }
     }
     // handle c++ wstring and wchar_t*
@@ -358,7 +358,7 @@ int Trick::VariableReference::stageValue(bool validate_address) {
         if (_address == nullptr) {
             _size = 0 ;
         } else {
-            _size = (wcslen((wchar_t *)_address) + 1) * sizeof(wchar_t);
+            _size = (wcslen(static_cast<wchar_t *>(_address)) + 1) * sizeof(wchar_t);
         }
     }
     if(_address != nullptr) {
@@ -447,33 +447,33 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
         case TRICK_CHARACTER:
             if (_var_info->attr->num_index == _var_info->num_index) {
                 // Single char
-                out << (int)cv_convert_double(_conversion_factor, *(char *)buf_ptr);
+                out << static_cast<int>(cv_convert_double(_conversion_factor, *static_cast<char *>(buf_ptr)));
             } else {
                 // All but last dim specified, leaves a char array 
-                write_escaped_string(out, (const char *) buf_ptr);
+                write_escaped_string(out, static_cast<const char *>(buf_ptr));
                 bytes_written = _size ;
             }
             break;
         case TRICK_UNSIGNED_CHARACTER:
             if (_var_info->attr->num_index == _var_info->num_index) {
                 // Single char
-                out << (unsigned int)cv_convert_double(_conversion_factor,*(unsigned char *)buf_ptr);
+                out << static_cast<unsigned int>(cv_convert_double(_conversion_factor,*static_cast<unsigned char *>(buf_ptr)));
             } else {
                 // All but last dim specified, leaves a char array 
-                write_escaped_string(out, (const char *) buf_ptr);
+                write_escaped_string(out, static_cast<const char *>(buf_ptr));
                 bytes_written = _size ;
             }
             break;
 
         case TRICK_WCHAR:{
                 if (_var_info->attr->num_index == _var_info->num_index) {
-                    out << *(wchar_t *) buf_ptr;
+                    out << *static_cast<wchar_t *>(buf_ptr);
                 } else {
                     // convert wide char string char string
-                    size_t len = wcs_to_ncs_len((wchar_t *)buf_ptr) + 1 ;
+                    size_t len = wcs_to_ncs_len(static_cast<wchar_t *>(buf_ptr)) + 1 ;
 
                     char temp_buf[len];
-                    wcs_to_ncs((wchar_t *) buf_ptr, temp_buf, len);
+                    wcs_to_ncs(static_cast<wchar_t *>(buf_ptr), temp_buf, len);
                     out << temp_buf;
                     bytes_written = _size ;
                 }
@@ -481,8 +481,8 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             break;
 
         case TRICK_STRING:
-            if ((char *) buf_ptr != nullptr) {
-                write_escaped_string(out, (const char *) buf_ptr);
+            if (static_cast<char *>(buf_ptr) != nullptr) {
+                write_escaped_string(out, static_cast<const char *>(buf_ptr));
                 bytes_written = _size ;
             } else {
                 out << '\0';
@@ -490,12 +490,12 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             break;
 
         case TRICK_WSTRING:
-            if ((wchar_t *) buf_ptr != nullptr) {
+            if (static_cast<wchar_t *>(buf_ptr) != nullptr) {
                 // convert wide char string char string
-                size_t len = wcs_to_ncs_len( (wchar_t *)buf_ptr) + 1 ;
+                size_t len = wcs_to_ncs_len( static_cast<wchar_t *>(buf_ptr)) + 1 ;
 
                 char temp_buf[len];
-                wcs_to_ncs(  (wchar_t *) buf_ptr, temp_buf, len);
+                wcs_to_ncs(  static_cast<wchar_t *>(buf_ptr), temp_buf, len);
                 out << temp_buf;
                 bytes_written = _size ;
             } else {
@@ -503,20 +503,20 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             }
             break;
         case TRICK_SHORT:
-            out << (short)cv_convert_double(_conversion_factor,*(short *)buf_ptr);
+            out << static_cast<short>(cv_convert_double(_conversion_factor,*static_cast<short *>(buf_ptr)));
             break;
 
         case TRICK_UNSIGNED_SHORT:
-            out << (unsigned short)cv_convert_double(_conversion_factor,*(unsigned short *)buf_ptr);
+            out << static_cast<unsigned short>(cv_convert_double(_conversion_factor,*static_cast<unsigned short *>(buf_ptr)));
             break;
 
         case TRICK_INTEGER:
         case TRICK_ENUMERATED:
-            out << (int)cv_convert_double(_conversion_factor,*(int *)buf_ptr);
+            out << static_cast<int>(cv_convert_double(_conversion_factor,*static_cast<int *>(buf_ptr)));
             break;
 
         case TRICK_BOOLEAN:
-            out << (int)cv_convert_double(_conversion_factor,*(bool *)buf_ptr);
+            out << static_cast<int>(cv_convert_double(_conversion_factor,*static_cast<bool *>(buf_ptr)));
             break;
 
         case TRICK_BITFIELD:
@@ -528,48 +528,48 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
             break;
             
         case TRICK_UNSIGNED_INTEGER:
-            out << (unsigned int)cv_convert_double(_conversion_factor,*(unsigned int *)buf_ptr);
+            out << static_cast<unsigned int>(cv_convert_double(_conversion_factor,*static_cast<unsigned int *>(buf_ptr)));
             break;
 
         case TRICK_LONG: {
-            long l = *(long *)buf_ptr;
+            long l = *static_cast<long *>(buf_ptr);
             if (_conversion_factor != cv_get_trivial()) {
-                l = (long)cv_convert_double(_conversion_factor, l);
+                l = static_cast<long>(cv_convert_double(_conversion_factor, l));
             }
             out << l;
             break;
         }
 
         case TRICK_UNSIGNED_LONG: {
-            unsigned long ul = *(unsigned long *)buf_ptr;
+            unsigned long ul = *static_cast<unsigned long *>(buf_ptr);
             if (_conversion_factor != cv_get_trivial()) {
-                ul = (unsigned long)cv_convert_double(_conversion_factor, ul);
+                ul = static_cast<unsigned long>(cv_convert_double(_conversion_factor, ul));
             }
             out << ul;
             break;
         }
 
         case TRICK_FLOAT:
-            out << std::setprecision(8) << cv_convert_float(_conversion_factor,*(float *)buf_ptr);
+            out << std::setprecision(8) << cv_convert_float(_conversion_factor,*static_cast<float *>(buf_ptr));
             break;
 
         case TRICK_DOUBLE:
-            out << std::setprecision(16) << cv_convert_double(_conversion_factor,*(double *)buf_ptr);
+            out << std::setprecision(16) << cv_convert_double(_conversion_factor,*static_cast<double *>(buf_ptr));
             break;
 
         case TRICK_LONG_LONG: {
-            long long ll = *(long long *)buf_ptr;
+            long long ll = *static_cast<long long *>(buf_ptr);
             if (_conversion_factor != cv_get_trivial()) {
-                ll = (long long)cv_convert_double(_conversion_factor, ll);
+                ll = static_cast<long long>(cv_convert_double(_conversion_factor, ll));
             }
             out << ll;
             break;
         }
 
         case TRICK_UNSIGNED_LONG_LONG: {
-            unsigned long long ull = *(unsigned long long *)buf_ptr;
+            unsigned long long ull = *static_cast<unsigned long long *>(buf_ptr);
             if (_conversion_factor != cv_get_trivial()) {
-                ull = (unsigned long long)cv_convert_double(_conversion_factor, ull);
+                ull = static_cast<unsigned long long>(cv_convert_double(_conversion_factor, ull));
             }
             out << ull;
             break;
@@ -588,7 +588,7 @@ int Trick::VariableReference::writeValueAscii( std::ostream& out ) const {
         if (bytes_written < _size) {
         // if returning an array, continue array as comma separated values
             out << ",";
-            buf_ptr = (void*) ((long)buf_ptr + _var_info->attr->size) ;
+            buf_ptr = static_cast<char *>(buf_ptr) + _var_info->attr->size ;
         }
     } //end while
 
@@ -739,32 +739,32 @@ int Trick::VariableReference::writeValueBinary( std::ostream& out, bool byteswap
     if ( local_type == TRICK_BITFIELD ) {
         int temp_i = GET_BITFIELD(_write_buffer , _var_info->attr->size ,
             _var_info->attr->index[0].start, _var_info->attr->index[0].size) ;
-        out.write((char *)(&temp_i), _size);
+        out.write(reinterpret_cast<char *>(&temp_i), _size);
         return _size;
     }
 
     if ( local_type == TRICK_UNSIGNED_BITFIELD ) {
         int temp_unsigned = GET_UNSIGNED_BITFIELD(_write_buffer , _var_info->attr->size ,
                 _var_info->attr->index[0].start, _var_info->attr->index[0].size) ;
-        out.write((char *)(&temp_unsigned), _size);
+        out.write(reinterpret_cast<char *>(&temp_unsigned), _size);
         return _size;
     }
 
     if (local_type ==  TRICK_NUMBER_OF_TYPES) {
         // TRICK_NUMBER_OF_TYPES is an error case
         int temp_zero = 0 ;
-        out.write((char *)(&temp_zero), _size);
+        out.write(reinterpret_cast<char *>(&temp_zero), _size);
         return _size;
     }
 
     if (byteswap) {
-        char * byteswap_buf = (char *) calloc (_size, 1);
-        byteswap_var(byteswap_buf, (char *) _write_buffer);
+        char * byteswap_buf = static_cast<char *>(calloc (_size, 1));
+        byteswap_var(byteswap_buf, static_cast<char *>(_write_buffer));
         out.write(byteswap_buf, _size);
         free (byteswap_buf);
     }
     else {
-        out.write((char *) _write_buffer, _size);
+        out.write(static_cast<char *>(_write_buffer), _size);
     }
 
     return _size;

@@ -35,7 +35,7 @@ std::ostream& Trick::operator<< (std::ostream& s, Trick::VariableServer& vs) {
 
     s << "{\"variable_server_connections\":[\n";
     int count = 0;
-    int n_connections = (int)vs.var_server_threads.size();
+    int n_connections = static_cast<int>(vs.var_server_threads.size());
     for ( it = vs.var_server_threads.begin() ; it != vs.var_server_threads.end() ; ++it ) {
         s << "{\n";
         s << *(*it).second;
@@ -299,7 +299,7 @@ void Trick::VariableServer::resolve_hostname()
         {
             if (p->ai_family == AF_INET)
             {
-                struct sockaddr_in* ipv4 = (struct sockaddr_in*)p->ai_addr;
+                struct sockaddr_in* ipv4 = reinterpret_cast<struct sockaddr_in*>(p->ai_addr);
                 inet_ntop(p->ai_family, &(ipv4->sin_addr), ipstr, sizeof(ipstr));
                 add_ip(ipstr);
             }

@@ -3,7 +3,7 @@
 
 // This should only be called from the VST itself
 void exit_var_thread(void *in_vst) {
-    Trick::VariableServerSessionThread * vst = (Trick::VariableServerSessionThread *) in_vst ;
+    Trick::VariableServerSessionThread * vst = static_cast<Trick::VariableServerSessionThread *>(in_vst) ;
 
     Trick::VariableServer * vs = vst->get_vs() ;
     
