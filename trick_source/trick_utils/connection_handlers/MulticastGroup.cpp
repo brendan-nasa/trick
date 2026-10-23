@@ -1,4 +1,5 @@
 #include "trick/MulticastGroup.hh"
+#include <arpa/inet.h>
 #include <string.h>
 #include <vector>
 #include <sstream>
@@ -150,7 +151,7 @@ int Trick::MulticastGroup::read  (std::string& message, int max_len) {
     if (!_started)
         return 0;
 
-    struct sockaddr_in s_in ;
+    struct sockaddr_in s_in {};
     socklen_t sock_size = sizeof(s_in) ;
 
     char incoming_msg[max_len];
@@ -175,6 +176,15 @@ int Trick::MulticastGroup::read  (std::string& message, int max_len) {
     if ( s_in.sin_addr.s_addr == _self_info.sin_addr.s_addr && s_in.sin_port == _self_info.sin_port) {
         // Clear out the socket
         _system_interface->recvfrom( _socket, incoming_msg, MAX_CMD_LEN, 0 , 0, 0) ;
+        return 0;
+    }
+
+    // Drop commands from rejected senders
+    char sender_ip[INET_ADDRSTRLEN] = "";
+    inet_ntop(AF_INET, &s_in.sin_addr, sender_ip, sizeof(sender_ip));
+    if (!acceptSender(sender_ip)) {
+        _system_interface->recvfrom( _socket, incoming_msg, max_len, 0 , 0, 0) ;
+        message = "";
         return 0;
     }
 

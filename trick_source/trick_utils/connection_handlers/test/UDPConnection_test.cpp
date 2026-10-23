@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+#include <vector>
+
 #include "trick/UDPConnection.hh"
 #include "SystemInterfaceMock/SystemInterfaceMock.hh"
 
@@ -403,4 +405,83 @@ TEST_F( UDPConnectionTest, read_uninitialized ) {
     std::string expected = "";
     ASSERT_EQ(result, expected);
     ASSERT_EQ(nbytes, 0);
+}
+
+// Accepts only the one sender it is given, and remembers every sender it was asked about.
+class FilteredUDPConnection : public Trick::UDPConnection {
+    public:
+        FilteredUDPConnection(SystemInterface * system_interface, std::string allowed)
+            : Trick::UDPConnection(system_interface), allowed_ip(allowed) {}
+        std::vector<std::string> asked;
+    protected:
+        bool acceptSender(const std::string& sender_ip) override {
+            asked.push_back(sender_ip);
+            return sender_ip == allowed_ip;
+        }
+    private:
+        std::string allowed_ip;
+};
+
+// Fakes one queued datagram from sender_ip and counts how many times it is consumed.
+static void queue_datagram(SystemInferfaceMock * system_context, const std::string& data, const char * sender_ip, int& consumed) {
+    system_context->register_recvfrom_impl([data, sender_ip, &consumed](int socket, void * buffer, size_t length, int flags, struct sockaddr * address, socklen_t * address_len) -> ssize_t {
+        if (address != NULL) {
+            struct sockaddr_in sender {};
+            sender.sin_family = AF_INET;
+            sender.sin_port = htons(5555);
+            inet_pton(AF_INET, sender_ip, &sender.sin_addr);
+            memcpy(address, &sender, sizeof(sender));
+            *address_len = sizeof(sender);
+        }
+        if (!(flags & MSG_PEEK)) {
+            consumed++;
+        }
+        size_t size = data.size() < length ? data.size() : length;
+        memcpy(buffer, data.c_str(), size);
+        return size;
+    });
+}
+
+TEST_F( UDPConnectionTest, read_accepted_sender ) {
+    // ARRANGE
+    system_context->noop_fcntl_impl();
+    FilteredUDPConnection filtered(system_context, "10.1.2.3");
+    int consumed = 0;
+    queue_datagram(system_context, "trick.var_send()\n", "10.1.2.3", consumed);
+    filtered.initialize("localhost", 0);
+    filtered.start();
+
+    // ACT
+    std::string result;
+    int nbytes = filtered.read(result);
+
+    // ASSERT
+    EXPECT_EQ(filtered.asked, std::vector<std::string>({"10.1.2.3"}));
+    EXPECT_GT(nbytes, 0);
+    EXPECT_EQ(consumed, 1);
+    // The accepted sender becomes the reply address.
+    EXPECT_EQ(filtered.getClientHostname(), "10.1.2.3");
+}
+
+TEST_F( UDPConnectionTest, read_rejected_sender ) {
+    // ARRANGE
+    system_context->noop_fcntl_impl();
+    FilteredUDPConnection filtered(system_context, "10.1.2.3");
+    int consumed = 0;
+    queue_datagram(system_context, "trick.var_send()\n", "10.9.9.9", consumed);
+    filtered.initialize("localhost", 0);
+    filtered.start();
+    std::string reply_address = filtered.getClientHostname();
+
+    // ACT
+    std::string result;
+    int nbytes = filtered.read(result);
+
+    // ASSERT
+    EXPECT_EQ(filtered.asked, std::vector<std::string>({"10.9.9.9"}));
+    EXPECT_EQ(nbytes, 0);
+    EXPECT_EQ(result, "");
+    // The datagram is consumed so it is not seen again, and replies still go where they did.
+    EXPECT_EQ(consumed, 1);
+    EXPECT_EQ(filtered.getClientHostname(), reply_address);
 }

@@ -11,6 +11,7 @@
 #include "trick/exec_proto.h"
 
 #include "trick/VariableServerSessionThread.hh"
+#include "trick/UDPConnection.hh"
 
 extern Trick::VariableServer* the_vs;
 
@@ -32,7 +33,9 @@ void * Trick::VariableServerSessionThread::thread_body() {
     std::string new_ip = _connection->getClientHostname();
     // check against allowlist
     // skip this check if connection failed, don't want an erroneous error
-    if (!_vs->get_bypass_ip_check() && status != CONNECTION_FAIL)
+    // UDP and multicast sessions have no peer yet; their connections check each datagram instead
+    bool connectionless = (dynamic_cast<Trick::UDPConnection *>(_connection) != nullptr);
+    if (!_vs->get_bypass_ip_check() && status != CONNECTION_FAIL && !connectionless)
     {
         bool valid_ip = _vs->check_ip(new_ip);
 

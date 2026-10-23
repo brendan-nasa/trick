@@ -142,7 +142,7 @@ trick.var_server_get_hostname()
 trick.var_server_get_port()
 ```
 
-Additional TCP or UDP sockets can be opened as well. Additional TCP sockets operate the same way as the original variable server socket. A UDP socket will only host 1 variable server session, and the responses will be sent to the latest address that sends commands to it. 
+Additional TCP or UDP sockets can be opened as well. Additional TCP sockets operate the same way as the original variable server socket. A UDP socket will only host 1 variable server session, and the responses will be sent to the latest address that sends commands to it. Because a UDP session has no fixed client, the allowlist is checked for every datagram it receives: datagrams from addresses that are not on the allowlist are discarded, and never change where responses are sent. Multicast sessions are checked the same way.
 
 Note that this is not necessary to allow multiple variable server clients - any number of clients can connect to the original variable server port.
 

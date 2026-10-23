@@ -43,6 +43,10 @@ namespace Trick {
             virtual int getClientPort() override;
             
         protected:
+            // Called with each datagram's sender IP before the datagram is read. Datagrams from
+            // senders it rejects are discarded and never become the reply address. Accepts all.
+            virtual bool acceptSender(const std::string& sender_ip);
+
             bool _initialized;
             bool _started;
             int _socket;

@@ -6,7 +6,41 @@
 
 #include "trick/TCPConnection.hh"
 #include "trick/UDPConnection.hh"
+#include "trick/MulticastGroup.hh"
 #include "trick/TCPClientListener.hh"
+
+namespace {
+
+// UDP sessions have no peer until a datagram arrives, so the allowlist cannot be checked when
+// the session starts. These connections check every datagram's sender instead.
+bool sender_allowed(Trick::VariableServer * vs, const std::string& sender_ip) {
+    if (vs->get_bypass_ip_check() || vs->check_ip(sender_ip)) {
+        return true;
+    }
+    std::string err_msg = "ILLEGAL IP CONNECTION ATTEMPTED: " + sender_ip + "\n";
+    message_publish(MSG_ERROR, err_msg.c_str());
+    return false;
+}
+
+class AllowlistedUDPConnection : public Trick::UDPConnection {
+    public:
+        explicit AllowlistedUDPConnection(Trick::VariableServer * vs) : _vs(vs) {}
+    protected:
+        bool acceptSender(const std::string& sender_ip) override { return sender_allowed(_vs, sender_ip); }
+    private:
+        Trick::VariableServer * _vs;
+};
+
+class AllowlistedMulticastGroup : public Trick::MulticastGroup {
+    public:
+        explicit AllowlistedMulticastGroup(Trick::VariableServer * vs) : _vs(vs) {}
+    protected:
+        bool acceptSender(const std::string& sender_ip) override { return sender_allowed(_vs, sender_ip); }
+    private:
+        Trick::VariableServer * _vs;
+};
+
+}
 
 int Trick::VariableServer::create_tcp_socket(const char * address, unsigned short in_port ) {
     // Open a VariableServerListenThread to manage this server
@@ -38,7 +72,7 @@ int Trick::VariableServer::create_udp_socket(const char * address, unsigned shor
     // UDP sockets are created without a listen thread, and represent only 1 session
     // Create a VariableServerSessionThread to manage this session
 
-    UDPConnection * udp_conn = new UDPConnection();
+    UDPConnection * udp_conn = new AllowlistedUDPConnection(this);
     int status = udp_conn->initialize(address, in_port);
     if ( status != 0 ) {
         message_publish(MSG_ERROR, "ERROR: Could not establish UDP port at address %s and port %d for Variable Server.\n", address, in_port);
@@ -70,7 +104,7 @@ int Trick::VariableServer::create_multicast_socket(const char * mcast_address, c
         return -1;
     }
 
-    MulticastGroup * multicast = new MulticastGroup();
+    MulticastGroup * multicast = new AllowlistedMulticastGroup(this);
     message_publish(MSG_INFO, "Created UDP variable server %s: %d\n", address, in_port);
 
     int status = multicast->initialize_with_receiving(address, mcast_address, in_port);

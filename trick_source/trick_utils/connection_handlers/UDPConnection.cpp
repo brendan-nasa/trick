@@ -122,7 +122,9 @@ int Trick::UDPConnection::read  (std::string& message, int max_len) {
         return 0;
 
     char incoming_msg[max_len];
-    int nbytes = _system_interface->recvfrom( _socket, incoming_msg, MAX_CMD_LEN, MSG_PEEK, NULL, NULL ) ;
+    struct sockaddr_in sender {};
+    socklen_t sender_size = sizeof(sender);
+    int nbytes = _system_interface->recvfrom( _socket, incoming_msg, MAX_CMD_LEN, MSG_PEEK, (struct sockaddr *) &sender, &sender_size ) ;
     if (nbytes == 0 ) {
         return 0;
     }
@@ -136,6 +138,15 @@ int Trick::UDPConnection::read  (std::string& message, int max_len) {
 
         // Otherwise, some other system error has occurred. Return an error.
         return -1;
+    }
+
+    // Drop datagrams from rejected senders before they can become the reply address
+    char sender_ip[INET_ADDRSTRLEN] = "";
+    inet_ntop(AF_INET, &sender.sin_addr, sender_ip, sizeof(sender_ip));
+    if (!acceptSender(sender_ip)) {
+        _system_interface->recvfrom( _socket, incoming_msg, max_len, 0, NULL, NULL ) ;
+        message = "";
+        return 0;
     }
 
     /* find the last newline that is present on the socket */
@@ -216,6 +227,11 @@ int Trick::UDPConnection::restart() {
 
 bool Trick::UDPConnection::isInitialized() {
     return _started;
+}
+
+bool Trick::UDPConnection::acceptSender(const std::string& sender_ip) {
+    (void) sender_ip;
+    return true;
 }
 
 int Trick::UDPConnection::getPort() {
